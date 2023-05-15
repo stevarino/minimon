@@ -29,6 +29,8 @@
     "demo": "tsc && node dist/scripts/demo.js",
     "build": "tsc && webpack --mode production && node dist/scripts/copyStatic.js",
     "prepublish": "npm run build",
-    "release": "npm version minor && npm publish"
+    "patch": "npm version patch && npm publish",
+    "minor": "npm version minor && npm publish",
+    "major": "npm version major && npm publish"
   }
 }
