@@ -1,17 +1,5 @@
 
-
-export function* chain(...args: Array<Iterable<string>>) {
-  for (const arg of args) {
-      yield* arg;
-  }
-}
-
-export function formatTime(ms: number) {
-  const date = new Date(ms);
-  return `${date.getHours()}:${date.getMinutes() < 10 ? '0' : ''}${date.getMinutes()}` +
-         `:${date.getSeconds() < 10 ? '0' : ''}${date.getSeconds()}`;
-}
-
+/** A Map object with a preset default (enable with getOrCreate) */
 export class DefaultMap<K, V> extends Map<K,V> {
   callback: () => V;
 
@@ -32,6 +20,7 @@ export class DefaultMap<K, V> extends Map<K,V> {
   }
 }
 
+/** An object field's key, represented by parts. */
 class Key {
   parts: Array<string>
   constructor(...parts: Array<string>) {
@@ -47,6 +36,7 @@ class Key {
   }
 }
 
+/** Generates a series of [key: val] values from a flattened json object */
 export function* flatten(params: unknown, filters?: Array<string>) {
   function* _filter(path: Key, key: string, val: unknown, filters: Array<Array<string>>): Generator<[Key, string]> {
     const newFilters = [];
@@ -101,6 +91,7 @@ export function* flatten(params: unknown, filters?: Array<string>) {
   }
 }
 
+/** Flatten a json object, without the outermost brackets. */
 export function* flattenBody(params: unknown, filters?: Array<string>) {
   let gen = flatten(params, filters);
   let sep = ''
@@ -112,18 +103,14 @@ export function* flattenBody(params: unknown, filters?: Array<string>) {
   }
 }
 
-/**
- * Converts an object into a streamed, stringified, flat object.
- * 
- * @generator
- * @yields {string}
- */
+/** Converts an object into a streamed, stringified, flat object. */
 export function* flattenString(params: unknown, filters?: Array<string>) {
   yield '{';
   yield* flattenBody(params, filters);
   yield '}';
 }
 
+/** Appends a length to the end of a stream of values. */
 export function* yieldWithSum(gen: Iterable<string>) {
   let total = 0;
   for (const str of gen) {

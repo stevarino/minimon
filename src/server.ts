@@ -12,8 +12,10 @@ interface Packet {
   [key: string]: string|number|undefined;
 }
 
-interface ServerOptions {
+export interface ServerOptions {
   port: number;
+  
+  jsonFilters?: string[];
 }
 
 export class Server {
@@ -58,7 +60,7 @@ export class Server {
     if ((packet as Packet)._ms === undefined) {
       (packet as Packet)._ms =  new Date().getTime();
     }
-    let gen = lib.flattenBody(packet);
+    let gen = lib.flattenBody(packet, this.options.jsonFilters);
     if (addSize) {
       gen = lib.yieldWithSum(gen);
     }

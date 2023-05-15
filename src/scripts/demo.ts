@@ -2,10 +2,9 @@
  * Run a demo stream.
  */
 
-import { Server } from '../server';
-import { options } from '../cli_options';
+import { Server } from '..';
 
-const server = new Server({port: options.web_port});
+const server = new Server({port: 8080});
 
 class Timer {
   ticks = 0;
