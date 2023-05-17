@@ -18,6 +18,11 @@ export interface ServerOptions {
   jsonFilters?: string[];
 }
 
+export interface EventOptions {
+  addSize?: boolean,
+  filters?: string[],
+}
+
 export class Server {
   listeners: Set<ServerResponse>;
   responseId: number = 0;
@@ -27,8 +32,8 @@ export class Server {
     const fileServer = serveStatic(path.resolve(__dirname, 'static'), {
       index: ['index.html', 'index.htm']
     });
-    /** @type Set<ServerResponse> */
-    this.listeners = new Set();
+    this.listeners = new Set<ServerResponse>();
+    options.jsonFilters = options.jsonFilters ?? [];
     this.options = options;
 
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -56,15 +61,19 @@ export class Server {
    * @param packet object to be json-ified
    * @param addSize whether or not to add a size field to it
    */
-  async jsonEvent(packet: unknown, addSize: boolean = true) {
+  async jsonEvent(packet: unknown, options?: EventOptions) {
     if ((packet as Packet)._ms === undefined) {
       (packet as Packet)._ms =  new Date().getTime();
     }
-    let gen = lib.flattenBody(packet, this.options.jsonFilters);
-    if (addSize) {
+    const filters = [
+      ...(this.options.jsonFilters ?? []),
+      ...(options?.filters ?? []),
+    ];
+    let gen = lib.flattenBody(packet, filters);
+    if (options?.addSize ?? true) {
       gen = lib.yieldWithSum(gen);
     }
-    const buffer = Buffer.from(await new Blob(['{', ...gen, '}']).arrayBuffer())
+    const buffer = Buffer.from(await new Blob(['{', ...gen, '}']).arrayBuffer());
     this.write(buffer);
   }
 
