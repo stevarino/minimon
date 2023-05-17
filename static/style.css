@@ -41,6 +41,8 @@ a {
   width: 42em;
   z-index: 20;
   box-shadow: -4px 0 4px #ccc;
+  display: grid;
+  grid-template-rows: 1fr auto;
 }
 
 #sidebar.collapsed {
@@ -54,8 +56,6 @@ a {
   padding: 0;
   user-select: none;
   width: 48px;
-  position: absolute;
-  left: 0;
 }
 
 #sidebar>ul li {

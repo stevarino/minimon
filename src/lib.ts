@@ -119,3 +119,17 @@ export function* yieldWithSum(gen: Iterable<string>) {
   }
   yield `,"_length":${total}`
 }
+
+export function* yieldArray(arr: Iterable<object>) {
+  yield '[';
+  let first = true;
+  for (const item of arr) {
+    if (!first) {
+      yield ',';
+    } else {
+      first = false;
+    }
+    yield JSON.stringify(item);
+  }
+  yield ']';
+}

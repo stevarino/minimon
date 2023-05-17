@@ -257,4 +257,14 @@ export class View {
   getFilters() {
     return this.filters.getFilters();
   }
+
+  getPackets()  {
+    const packets = [];
+    for (const packet of this.indexes.packets) {
+      if (!this.filters.isFiltered(packet)) {
+        packets.push(packet);
+      }
+    }
+    return packets;
+  }
 }

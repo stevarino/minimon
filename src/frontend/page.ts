@@ -1,4 +1,5 @@
 import * as packets from "./packets"
+import { yieldArray } from '../lib'
 
 // @ts-ignore
 accessibleAutocomplete({
@@ -14,19 +15,50 @@ accessibleAutocomplete({
   showAllValues: true,
 });
 
+interface ButtonCallback {
+  [key: string]: (target: HTMLElement) => void;
+}
 
-document.querySelectorAll('#sidebar>ul>li').forEach(el => {
-  el.addEventListener('click', (e) => {
-    const id = 's_' + (e.target as HTMLElement).innerText;
+const buttonCallbacks: ButtonCallback = {
+  toggleSidebar: (target) => {
+    const id = 's_' + target.innerText;
     const div = document.getElementById(id);
-    if (div == null) return;
+    if (div === null) {
+      console.error('Bad callback target: ', target.innerText, target);
+      return;
+    }
     if (div.style.display === 'block') {
       hideSidebar();
     } else {
       showSidebar();
-      (e.target as HTMLElement).classList.add('active');
+      target.classList.add('active');
       div.style.display = 'block';
     }
+  },
+  
+  download: () => {
+    const data = Array.from(yieldArray(window.VIEW.getPackets()));
+    const blob = new Blob(data, { type: 'application/json' });
+    const el = window.document.createElement('a');
+    el.href = window.URL.createObjectURL(blob);
+    el.download = 'data.json';
+    document.body.appendChild(el);
+    el.click();
+    document.body.removeChild(el);
+    window.URL.revokeObjectURL(el.href);
+  }
+}
+
+
+document.querySelectorAll('#sidebar>ul>li').forEach(el => {
+  el.addEventListener('click', (e) => {
+    const name = (e.target as HTMLElement).dataset['callback'] ?? 'toggleSidebar';
+    const callback = buttonCallbacks[name];
+    if (callback === undefined) {
+      console.error('Bad button callback ', name, e.target);
+      return;
+    }
+    callback(e.target as HTMLElement);
   })
 });
 
