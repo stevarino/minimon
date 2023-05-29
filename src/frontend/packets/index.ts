@@ -1,9 +1,9 @@
 import { Packet, ROOT, NULL, Dataset, Options, FinalOptions, optionsWithDefaults } from "./lib"
+import { IndexStore, View, Table } from "./view";
 import { FILTER, Filters } from "./filters";
-import { IndexStore, View } from "./view";
 
 export { 
   Packet, ROOT, NULL, Dataset, Options, FinalOptions, optionsWithDefaults,
-  IndexStore, View,
+  IndexStore, View, Table,
   FILTER, Filters
 }

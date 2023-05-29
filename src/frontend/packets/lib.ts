@@ -6,8 +6,12 @@ export const NULL = '␀'
  * string values (flattened datastructure).
  */
 export interface Packet {
-  _ms: number;
-  [key: string]: string|number;  // really just string
+  id: number;
+  ms: number;
+  size: number;
+  payload: {
+    [key: string]: string;
+  }
 }
 
 /** Options with optional settings */

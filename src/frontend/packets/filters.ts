@@ -1,10 +1,11 @@
 import { Packet, ROOT, NULL } from "./lib"
+import { IndexStore } from './view';
 
 export namespace FILTER {
   type testSig = (val: string|undefined, testVal: string|RegExp) => boolean;
   export class Type {
     static _id = 0;
-    static map: Map<number, Type> = new Map();
+    static indexes: Map<number, Type> = new Map();
   
     id: number;
     label: string;
@@ -15,19 +16,21 @@ export namespace FILTER {
       this.label = label;
       this.check = check;
       this.id = Type._id++;
-      Type.map.set(this.id, this);
+      Type.indexes.set(this.id, this);
       this.hasValue = hasValue;
     }
   }
+  
+  export class REType extends Type {};
 
   export const EQUALS = new Type('==', (v, t) => v === t);
   export const NOT_EQUALS = new Type('!=', (v, t) => v !== t);
-  export const MATCHES = new Type('~',  (v, t) => v !== undefined && (t as RegExp).test(v));
-  export const NOT_MATCHES = new Type('!~', (v, t) => v !== undefined && !(t as RegExp).test(v));
+  export const MATCHES = new REType('~',  (v, t) => v !== undefined && (t as RegExp).test(v));
+  export const NOT_MATCHES = new REType('!~', (v, t) => v !== undefined && !(t as RegExp).test(v));
   export const GROUP = new Type('Group By', () => true, false);
 
   export function forEach(callback: (filter: Type) => void) {
-    Type.map.forEach(callback);
+    Type.indexes.forEach(callback);
   }
 }
 
@@ -39,16 +42,25 @@ class Filter {
   type: FILTER.Type;
   value: string | RegExp;
 
-  constructor(field: string, type: FILTER.Type, value: string|RegExp) {
+  constructor(field: string, type: FILTER.Type, value: string) {
     this.id = Filter._id++;
     this.field = field;
     this.type = type;
-    this.value = value;
+    if (type instanceof FILTER.REType) {
+      this.value = new RegExp(value);
+    } else {
+      this.value = value;
+    }
   }
 }
 
 export class Filters {
   filters: Map<string, Filter[]> = new Map();
+  indexes: IndexStore;
+  
+  constructor(indexes: IndexStore) {
+    this.indexes = indexes;
+  }
 
   getGroups() {
     const groups: string[] = [];
@@ -72,7 +84,7 @@ export class Filters {
     }
     const fields: Map<string, string> = new Map();
     groups.forEach(grp => {
-      fields.set(grp, (packet[grp] ?? NULL) as string);
+      fields.set(grp, (packet.payload[grp] ?? NULL) as string);
     });
     return new URLSearchParams(Object.fromEntries(fields)).toString();
   }
@@ -80,28 +92,30 @@ export class Filters {
   /** Test if a packet should be filtered (returns true if filtered) */
   isFiltered(packet: Packet) {
     for (const [key, conditions] of this.filters) {
-      if (this._runFilters(conditions, packet[key] as string|undefined)) {
+      const fields = this.indexes.findFields(key);
+      for (const filter of conditions) {
+        let keep = false;
+        for (const field of fields) {
+          if (!filter.type.check(packet.payload[key] as string|undefined, filter.value)) {
+
+          }
+        }
+      }
+      if (!keep) {
         return true;
       }
     }
     return false;
   }
 
-  /** Test if a value should be filtered (returns true if filtered) */
-  valueIsFiltered(key: string, value: string|undefined): boolean {
-    const conditions = this.filters.get(key);
-    if (conditions === undefined) return false;
-    return this._runFilters(conditions, value);
-  }
-
-  /** Run a series of filters, returning true if filtered, false if not */
-  _runFilters(conditions: Filter[], value: string|undefined): boolean {
+  /** Run a series of filters, returning true if packet passes, false if not */
+  _runPredicates(conditions: Filter[], value: string|undefined): boolean {
     for (const filter of conditions) {
       if (!filter.type.check(value, filter.value)) {
-        return true;
+        return false;
       }
     }
-    return false;
+    return true;
   }
 
   /** Add a grouping */

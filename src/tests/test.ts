@@ -26,3 +26,29 @@ test('serlialize-filter', t => {
   t.deepEqual(arr, [['foo.baz', '3']]);
 });
 
+test('inflateObject', t => {
+  t.deepEqual(
+    lib.inflateObject({'foo': 'bar'}),
+    {'foo': 'bar'}
+  );
+  
+  t.deepEqual(
+    lib.inflateObject({'foo.bar': 'baz'}),
+    {'foo': {'bar': 'baz'}}
+  );
+  
+  t.deepEqual(
+    lib.inflateObject({'foo[0]': 'baz'}),
+    {'foo': ['baz']}
+  );
+  
+  t.deepEqual(
+    lib.inflateObject({'foo[0]': 'bar', 'foo[1]': 'baz'}),
+    {'foo': ['bar', 'baz']}
+  );
+  
+  t.deepEqual(
+    lib.inflateObject({'foo[0]bar': 'baz'}),
+    {'foo': [{"bar": 'baz'}]}
+  );
+})

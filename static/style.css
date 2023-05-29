@@ -1,6 +1,24 @@
 body {
-  padding-right: 52px;
+  padding-left: 52px;
   font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif
+}
+
+/* ===== Scrollbar CSS ===== */
+/* https://codepen.io/stephenpaton-tech/full/JjRvGmY */
+body * {
+  scrollbar-width: auto;
+  scrollbar-color: #eee #fff;
+}
+body *::-webkit-scrollbar {
+  width: 16px;
+}
+body *::-webkit-scrollbar-track {
+  background: #fff;
+}
+body *::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 10px;
+  border: 3px solid #fff;
 }
 
 h1 {
@@ -10,6 +28,22 @@ h1 {
 
 a {
   color: blue;
+}
+
+#header {
+  position: relative;
+}
+
+#header div {
+  right: 1em;
+  top: 1em;
+  position: absolute;
+}
+#header span {
+  display: inline-block;
+  width: 6em;
+  text-align: right;
+  color: #ccc;
 }
 
 #tooltip {
@@ -34,25 +68,25 @@ a {
 #sidebar {
   position: fixed;
   top: 0;
-  right: 0;
+  left: 0;
   bottom: 0;
   padding: 4px;
   background: #fff;
   width: 42em;
   z-index: 20;
-  box-shadow: -4px 0 4px #ccc;
+  box-shadow: 4px 0 4px #ccc;
   display: grid;
   grid-template-rows: 1fr auto;
 }
 
 #sidebar.collapsed {
   width: 48px;
-  box-shadow: -1px 0 #ccc;
+  box-shadow: 1px 0 #ccc;
 }
 
 #sidebar>ul {
   list-style: none;
-  margin: 0;
+  margin: 0 0 0 auto;
   padding: 0;
   user-select: none;
   width: 48px;
@@ -83,8 +117,9 @@ a {
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 0;
-  left: 4em;
+  left: 0;
+  right: 4em;
+  padding: 0 1em;
   overflow-y: scroll; 
 }
 
@@ -100,12 +135,27 @@ form {
   margin: 0 2em;
 }
 
-input, select, form button {
+input, select {
   display: block;
   padding: 1em;
-  width: 100%;
   margin: 1em 0;
-  border: 2px solid #0b0c0c;
+  border: 1px solid #ccc;
+}
+
+button {
+  display: inline-block;
+  background: transparent;
+  box-sizing: content-box;
+  width: 36px; /* 24px default font size + 12px */
+  border: 1px solid #efefef;
+  border-radius: 0.25em;
+  text-align: center;
+  cursor: pointer;
+  padding: 5px;
+}
+
+button:hover {
+  box-shadow: 1px 1px #ccc;
 }
 
 input:focus, select:focus {
@@ -119,31 +169,29 @@ input[disabled] {
   border-color: #aaa;
 }
 
-input[type=submit], form button {
+input[type=submit], button {
   font-weight: bold;
   cursor: pointer;
 }
 
 #filterOptions {
   display: grid;
-  grid-template-columns: 3fr 1fr;
+  grid-template-columns: auto 1fr auto auto auto;
+  grid-gap: 1em;
 }
 
-#filterWithValue {
-  padding-right: 20px;
-  border-right: 1px solid #eee;
+#filterOptions input {
+  width: 100%;
 }
 
-#filterWithValue div {
-  display: grid;
-  grid-template-columns: 1fr 3fr;
-  gap: 20px;
+#filterOptions>span {
+  display: inline-block;
+  margin: auto 0;
+  color: #999;
 }
 
-#filterWithoutValue {
-  padding-left: 20px;
-  display: grid;
-  align-items: end;
+#filterOptions button {
+  margin: 1em auto;
 }
 
 #active_filters {
@@ -195,6 +243,50 @@ input[type=submit], form button {
   background: mintcream;
 }
 
+#s_table_view .row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-gap: 1em;
+}
+#s_table_view .row button {
+  font-size: 0.66em;
+}
+
+#s_table_view table {
+  margin-top: 1em;
+  width: 100%;
+}
+
+#s_table_view th {
+  background: #f6f6ff;
+  cursor: pointer;
+}
+
+dialog {
+  height: calc(100% - 4em);
+  width: 60%;
+}
+
+dialog>div {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+}
+
+dialog>div>div {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-gap: 1em;
+}
+
+dialog pre {
+  overflow: auto;
+}
+
+dialog .body {
+  position: absolute;
+}
+
 /** 
 https://github.com/alphagov/accessible-autocomplete/blob/main/src/autocomplete.css
 */
@@ -206,7 +298,7 @@ https://github.com/alphagov/accessible-autocomplete/blob/main/src/autocomplete.c
 .autocomplete__hint,
 .autocomplete__input {
   -webkit-appearance: none;
-  border: 2px solid #0b0c0c;
+  /* border: 2px solid #0b0c0c; */
   border-radius: 0; /* Safari 10 on iOS adds implicit border rounding. */
   box-sizing: border-box;
   -moz-box-sizing: border-box;

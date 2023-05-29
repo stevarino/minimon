@@ -1,5 +1,6 @@
-import { View, Dataset, ROOT } from './packets';
-import { rebuildFilterList } from './page'
+import { View, Dataset, ROOT } from '../packets';
+import { rebuildFilterList } from './panelFilters'
+import { sample } from './packetRate';
 
 declare global { 
   var CLICK_LOCK: boolean;
@@ -58,7 +59,9 @@ window.VIEW = new View(window.CHART_DATA, (min: number, max: number) => {
 
 const eventSource = new EventSource('/packets');
 eventSource.addEventListener('packet', event => {
-  window.VIEW.addPacket(JSON.parse(event.data));
+  window.VIEW.onPacket(event.data, (packet)=> {
+    sample.push({ ms: packet.ms, size: packet.size })
+  });
 });
 
 // https://www.chartjs.org/docs/latest/configuration/tooltip.html#external-custom-tooltips

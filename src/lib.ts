@@ -1,22 +1,22 @@
 
 /** A Map object with a preset default (enable with getOrCreate) */
 export class DefaultMap<K, V> extends Map<K,V> {
-  callback: () => V;
+  callback: (arg?: any) => V;
 
-  constructor(callback: () => V, iterable?: Iterable<readonly [K, V]> | null | undefined) {
+  constructor(callback: (arg?: any) => V, iterable?: Iterable<readonly [K, V]> | null | undefined) {
     super(iterable)
     this.callback = callback;
   }
 
-  getOrCreate(key: K): [V, boolean] {
+  getOrCreate(key: K) {
     let created = false;
-    let val: V|undefined = super.get(key);
-    if (val === undefined) {
+    let value: V|undefined = super.get(key);
+    if (value === undefined) {
       created = true;
-      val = this.callback();
-      this.set(key, val);
+      value = this.callback();
+      this.set(key, value);
     }
-    return [val, created];
+    return { value, created };
   }
 }
 
@@ -111,13 +111,13 @@ export function* flattenString(params: unknown, filters?: Array<string>) {
 }
 
 /** Appends a length to the end of a stream of values. */
-export function* yieldWithSum(gen: Iterable<string>) {
+export function* yieldWithSize(gen: Iterable<string>) {
   let total = 0;
   for (const str of gen) {
     total += str.length;
     yield str;
   }
-  yield `,"_length":${total}`
+  yield `,"_sz":${total}`;
 }
 
 export function* yieldArray(arr: Iterable<object>) {
@@ -132,4 +132,68 @@ export function* yieldArray(arr: Iterable<object>) {
     yield JSON.stringify(item);
   }
   yield ']';
+}
+
+const tokenPattern = /[.\[\]]/
+const isNum = /^\d+$/
+
+/** Convert a flattened object into a deeply nested object */
+export function inflateObject(obj: {[key: string]: string}) {
+  const output = {};
+  Object.entries(obj).forEach(([key, val]) => {
+    let target: {[key: string]: unknown} = output;
+    const tokens = key.split(tokenPattern).filter((v) => v.length > 0);
+    // console.log('tokens: ', tokens)
+    for (let i=0; i<tokens.length - 1; i++) {
+      const token = tokens[i];
+      if (target[token] === undefined) {
+        target[token] = {};
+      }
+      target = target[token] as {[key: string]: unknown};
+    }
+    target[tokens[tokens.length-1]] = val;
+  });
+
+  /** Convert any array-like objects into arrays */
+  function _check(target: object|string): object|Array<unknown>|string {
+    if (typeof target === 'string') {
+      return target;
+    }
+    const entries = Object.entries(target);
+    // console.log('foo: ', target, entries);
+    if (isNum.test(entries[0][0])) {
+      const arr: Array<unknown> = [];
+      entries.forEach(([k, v]) => {
+        arr[Number(k)] = _check(v);
+      });
+      return arr;
+    }
+    const obj: {[key: string]: unknown} = {};
+    entries.forEach(([k, v]) => {
+      // @ts-ignore
+      obj[k] = _check(v);
+    })
+    return obj;
+  }
+
+  return _check(output);
+}
+
+export function selector(selector: string, callback: (el: HTMLElement) => void) {
+  const el = document.querySelector(selector);
+  if (el !== null) {
+    callback(el as HTMLElement);
+    return true;
+  }
+  console.error(`Unable to find selector: "${selector}`);
+}
+
+export function formatBytes(bytes: number, decimals = 2) {
+  // https://stackoverflow.com/a/18650828
+  if (!+bytes) return '0B'
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }

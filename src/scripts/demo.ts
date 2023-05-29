@@ -29,12 +29,22 @@ class Timer {
     if (this.ticks > this.slow + this.fast) {
       this.ticks = 0;
     }
+    const arr = [];
+    for (let i=0; i<3; i++) {
+      arr.push(Math.round(Math.random() * 5))
+    }
     server.jsonEvent({
       _name: this.name,
       _dir: this.dir,
       slow: this.slow,
       fast: this.fast,
       tick: this.ticks,
+      xyz: arr,
+      rgb: [
+        {r: 255, g: 0, b: 0},
+        {r: 0, g: 255, b: 0},
+        {r: 0, g: 0, b: 255},
+      ]
     });
     setTimeout(() => {this.tick();}, delay);
   }

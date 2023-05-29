@@ -1,31 +1,25 @@
 import { IncomingMessage, ServerResponse, createServer } from "http";
 import * as path from 'path';
 import * as lib from './lib';
+import { Packet } from './frontend/packets'
 import { Blob } from 'node:buffer';
 
 const serveStatic = require('serve-static');
 const finalhandler = require('finalhandler');
 
-interface Packet {
-  _ms: number|undefined;
-  _size: number|undefined;
-  [key: string]: string|number|undefined;
-}
-
 export interface ServerOptions {
   port: number;
-  
   jsonFilters?: string[];
 }
 
 export interface EventOptions {
-  addSize?: boolean,
   filters?: string[],
 }
 
 export class Server {
   listeners: Set<ServerResponse>;
   responseId: number = 0;
+  packetId: number = 0;
   options: ServerOptions;
 
   constructor(options: ServerOptions) {
@@ -62,18 +56,20 @@ export class Server {
    * @param addSize whether or not to add a size field to it
    */
   async jsonEvent(packet: unknown, options?: EventOptions) {
-    if ((packet as Packet)._ms === undefined) {
-      (packet as Packet)._ms =  new Date().getTime();
+    const header = {
+      id: this.packetId++,
+      ms: new Date().getTime(),
     }
     const filters = [
       ...(this.options.jsonFilters ?? []),
       ...(options?.filters ?? []),
     ];
-    let gen = lib.flattenBody(packet, filters);
-    if (options?.addSize ?? true) {
-      gen = lib.yieldWithSum(gen);
-    }
-    const buffer = Buffer.from(await new Blob(['{', ...gen, '}']).arrayBuffer());
+    const buffer = Buffer.from(await new Blob([
+      JSON.stringify(header).slice(0, -1),
+      ',"payload": {',
+      ...lib.flattenBody(packet, filters),
+      '}}'
+    ]).arrayBuffer());
     this.write(buffer);
   }
 
