@@ -2,13 +2,17 @@ export const ROOT = 'Total'
 export const NULL = '␀'
 
 /**
- * A minecraft packet, assumed to be a set of jsonpath-like string keys and
+ * A data packet, assumed to be a set of jsonpath-like string keys and
  * string values (flattened datastructure).
  */
 export interface Packet {
-  id: number;
-  ms: number;
-  size: number;
+  /** metadata */
+  header: {
+    id: number;
+    ms: number;
+    size: number;
+  }
+  /** defined fields */
   payload: {
     [key: string]: string;
   }

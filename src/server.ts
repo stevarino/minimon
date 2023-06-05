@@ -1,7 +1,6 @@
 import { IncomingMessage, ServerResponse, createServer } from "http";
 import * as path from 'path';
 import * as lib from './lib';
-import { Packet } from './frontend/packets'
 import { Blob } from 'node:buffer';
 
 const serveStatic = require('serve-static');
@@ -56,10 +55,10 @@ export class Server {
    * @param addSize whether or not to add a size field to it
    */
   async jsonEvent(packet: unknown, options?: EventOptions) {
-    const header = {
+    const header = {header: {
       id: this.packetId++,
       ms: new Date().getTime(),
-    }
+    }}
     const filters = [
       ...(this.options.jsonFilters ?? []),
       ...(options?.filters ?? []),

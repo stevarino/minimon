@@ -60,7 +60,7 @@ window.VIEW = new View(window.CHART_DATA, (min: number, max: number) => {
 const eventSource = new EventSource('/packets');
 eventSource.addEventListener('packet', event => {
   window.VIEW.onPacket(event.data, (packet)=> {
-    sample.push({ ms: packet.ms, size: packet.size })
+    sample.push({ ms: packet.header.ms, size: packet.header.size })
   });
 });
 

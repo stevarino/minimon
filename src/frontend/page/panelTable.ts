@@ -65,7 +65,7 @@ document.getElementById('table_load')?.addEventListener('click', (e) => {
     th.addEventListener('click', (() => {
       const table = th.closest('table');
       if (table === null) {
-        console.log('Unable to locate nearest table')
+        console.error('Unable to locate nearest table')
         return;
       }
       Array.from(table.querySelectorAll('tr:nth-child(n+2)'))

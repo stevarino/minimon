@@ -2,32 +2,40 @@ import test from 'ava';
 import * as packets from "../frontend/packets";
 
 let _testPacketId = 0;
-function getTestPacket(header: {id?: number, ms?: number, size?: number}, payload: {[key: string]: string}): packets.Packet {
+function getTestPacket(
+      header: {id?: number, ms?: number, size?: number}, 
+      payload: {[key: string]: string}
+    ): packets.Packet {
   _testPacketId += 1;
-  return Object.assign({
-    id: _testPacketId,
-    ms: 1000,
-    size: 0,
-    payload: payload,
-  }, header ?? {});
+  const packet = {
+    header: {
+      id: _testPacketId,
+      ms: 1000,
+      size: 0,
+    },
+    payload: payload
+  };
+  Object.assign(packet.header, header ?? {});
+  return packet;
 }
 
 // https://www.compart.com/en/unicode/U+2400
 const NULL_UTF8 = '%E2%90%80';
 
 test('IndexRender', t => {
-  const index = new packets.IndexStore();
-  index.addPacket(getTestPacket({}, {foo: 'bar'}));
+  const index = new packets.PacketStore();
+  const filters = new packets.FilterSet(index);
+  index.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
   let view = index.render();
   t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 1}]}]);
 });
 
 test('IndexGroups', t => {
-  const index = new packets.IndexStore();
-  const filters = new packets.Filters();
-  index.addPacket(getTestPacket({}, {foo: 'bar'}));
-  index.addPacket(getTestPacket({}, {foo: 'baz'}));
-  index.addPacket(getTestPacket({}, {foo: 'bar'}));
+  const index = new packets.PacketStore();
+  const filters = new packets.FilterSet(index);
+  index.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
+  index.addPacket(getTestPacket({}, {foo: 'baz'}), filters);
+  index.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
   filters.addGroup('foo');
   const view = index.render(filters);
   t.deepEqual(view, [
@@ -38,11 +46,11 @@ test('IndexGroups', t => {
 
 
 test('IndexMultiGroups', t => {
-  const index = new packets.IndexStore();
-  const filters = new packets.Filters();
-  index.addPacket(getTestPacket({}, {foo: 'a'}));
-  index.addPacket(getTestPacket({}, {foo: 'b', bar: 'c'}));
-  index.addPacket(getTestPacket({}, {foo: 'a', bar: 'a'}));
+  const index = new packets.PacketStore();
+  const filters = new packets.FilterSet(index);
+  index.addPacket(getTestPacket({}, {foo: 'a'}), filters);
+  index.addPacket(getTestPacket({}, {foo: 'b', bar: 'c'}), filters);
+  index.addPacket(getTestPacket({}, {foo: 'a', bar: 'a'}), filters);
   filters.addGroup('foo');
   filters.addGroup('bar');
   const view = index.render(filters);
@@ -53,23 +61,23 @@ test('IndexMultiGroups', t => {
 });
 
 test('IndexFilterEqual', t => {
-  const index = new packets.IndexStore();
-  const filters = new packets.Filters();
-  index.addPacket(getTestPacket({}, {foo: 'bar',}));
-  index.addPacket(getTestPacket({}, { foo: 'baz',}));
-  index.addPacket(getTestPacket({}, { foo: 'bar',}));
-  filters.addFilter('foo', packets.FILTER.EQUALS, 'bar');
+  const index = new packets.PacketStore();
+  const filters = new packets.FilterSet(index);
+  index.addPacket(getTestPacket({}, {foo: 'bar',}), filters);
+  index.addPacket(getTestPacket({}, { foo: 'baz',}), filters);
+  index.addPacket(getTestPacket({}, { foo: 'bar',}), filters);
+  filters.addFilter('foo', packets.FilterType.get('=='), 'bar');
   let view = index.render(filters);
   t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 2}]}]);
 });
 
 test('IndexFilterNotEqual', t => {
-  const index = new packets.IndexStore();
-  const filters = new packets.Filters();
-  index.addPacket(getTestPacket({}, { foo: 'bar',}));
-  index.addPacket(getTestPacket({}, { foo: 'baz',}));
-  index.addPacket(getTestPacket({}, { foo: 'bar',}));
-  filters.addFilter('foo', packets.FILTER.NOT_EQUALS, 'bar');
+  const index = new packets.PacketStore();
+  const filters = new packets.FilterSet(index);
+  index.addPacket(getTestPacket({}, { foo: 'bar',}), filters);
+  index.addPacket(getTestPacket({}, { foo: 'baz',}), filters);
+  index.addPacket(getTestPacket({}, { foo: 'bar',}), filters);
+  filters.addFilter('foo', packets.FilterType.get('!='), 'bar');
   let view = index.render(filters);
   t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 1}]}]);
 });

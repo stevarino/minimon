@@ -20,6 +20,27 @@ export class DefaultMap<K, V> extends Map<K,V> {
   }
 }
 
+/** A Map object with a preset default (enable with getOrCreate) */
+export class DefaultWeakMap<K extends object, V> extends WeakMap<K,V> {
+  callback: (arg?: any) => V;
+
+  constructor(callback: (arg?: any) => V, entries?: readonly [K, V][] | null | undefined) {
+    super(entries)
+    this.callback = callback;
+  }
+
+  getOrCreate(key: K) {
+    let created = false;
+    let value: V|undefined = super.get(key);
+    if (value === undefined) {
+      created = true;
+      value = this.callback();
+      this.set(key, value);
+    }
+    return { value, created };
+  }
+}
+
 /** An object field's key, represented by parts. */
 class Key {
   parts: Array<string>
@@ -143,7 +164,6 @@ export function inflateObject(obj: {[key: string]: string}) {
   Object.entries(obj).forEach(([key, val]) => {
     let target: {[key: string]: unknown} = output;
     const tokens = key.split(tokenPattern).filter((v) => v.length > 0);
-    // console.log('tokens: ', tokens)
     for (let i=0; i<tokens.length - 1; i++) {
       const token = tokens[i];
       if (target[token] === undefined) {
@@ -160,7 +180,6 @@ export function inflateObject(obj: {[key: string]: string}) {
       return target;
     }
     const entries = Object.entries(target);
-    // console.log('foo: ', target, entries);
     if (isNum.test(entries[0][0])) {
       const arr: Array<unknown> = [];
       entries.forEach(([k, v]) => {
@@ -196,4 +215,48 @@ export function formatBytes(bytes: number, decimals = 2) {
   const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+}
+
+/** Two way, one-to-one mapping */
+export class BiMap<T, U> extends Map<T, U> {
+  reverse: Map<U, T>;
+  constructor(iterable?: Iterable<readonly [T, U]> | null | undefined) {
+    const items = Array.from(iterable ?? []);
+    super(items);
+    this.reverse = new Map<U, T>(items.map(([t, u]) => [u, t]));
+  }
+
+  set(key: T, value: U) {
+    this.reverse.set(value, key);
+    return super.set(key, value);
+  }
+
+  getReverse(key: U) {
+    return this.reverse.get(key);
+  }
+
+  hasReverse(key: U) {
+    return this.reverse.has(key);
+  }
+
+  clear() {
+    this.reverse.clear();
+    super.clear();
+  }
+
+  delete(key: T) {
+    const val = this.get(key);
+    if (val !== undefined) {
+      this.reverse.delete(val);
+    }
+    return super.delete(key);
+  }
+
+  deleteReverse(key: U) {
+    const val = this.reverse.get(key);
+    if (val !== undefined) {
+      super.delete(val);
+    }
+    return this.reverse.delete(key);
+  }
 }
