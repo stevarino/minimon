@@ -1,6 +1,6 @@
 {
   "name": "monilite",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A minimal monitoring toolset designed for real time analysis of streaming data.",
   "main": "app.js",
   "keywords": [
