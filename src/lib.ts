@@ -89,6 +89,7 @@ export function* flatten(params: unknown, filters?: Array<string>) {
         break;
       case 'number':
       case 'bigint':
+      case 'boolean':
         yield [path, String(target)];
         break;
       case 'object':

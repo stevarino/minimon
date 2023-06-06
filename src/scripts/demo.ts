@@ -6,55 +6,47 @@ import { Server } from '..';
 
 const server = new Server({port: 8080});
 
-class Timer {
-  ticks = 0;
-  slow: number;
+const PI_2 = Math.PI * 2;
+
+class FlipFlop {
+  frequency: number;
+  offset: number;
+  count: number;
   fast: number;
-  name: string;
-  dir: string;
-  constructor(slow: number, fast: number, name: string, dir: string) {
-    this.slow = slow;
+  slow: number;
+
+  constructor(frequency: number, offset: number, count: number, fast: number, slow: number) {
+    this.frequency = frequency
+    this.offset = offset
+    this.count = count;
     this.fast = fast;
-    this.name = name;
-    this.dir = dir;
+    this.slow = slow;
     this.tick();
   }
 
   tick() {
-    this.ticks += 1;
-    let delay = 5;
-    if (this.ticks > this.slow) {
-      delay = 10 + Math.random() * 50;
+    const now = new Date().getTime();
+    const x = (now - this.offset) % this.frequency / this.frequency;
+    let timeout = this.fast;
+    if (x > 0.5) timeout = this.slow;
+    for (let i=0; i<this.count; i++) {
+      server.jsonEvent({
+        slow: this.slow,
+        fast: this.fast,
+        offset: this.offset,
+        frequency: this.frequency,
+        isfast: x < 0.5,
+        index: i
+      })
     }
-    if (this.ticks > this.slow + this.fast) {
-      this.ticks = 0;
-    }
-    const arr = [];
-    for (let i=0; i<3; i++) {
-      arr.push(Math.round(Math.random() * 5))
-    }
-    server.jsonEvent({
-      _name: this.name,
-      _dir: this.dir,
-      slow: this.slow,
-      fast: this.fast,
-      tick: this.ticks,
-      xyz: arr,
-      rgb: [
-        {r: 255, g: 0, b: 0},
-        {r: 0, g: 255, b: 0},
-        {r: 0, g: 0, b: 255},
-      ]
-    });
-    setTimeout(() => {this.tick();}, delay);
+    setTimeout(() => this.tick(), timeout);
   }
 }
 
-new Timer(200, 200, 'test', 'up');
-new Timer(500, 500, 'test', 'dn');
-new Timer(100, 300, 'test', 'dn');
-new Timer(400, 300, 'test', 'dn');
-
+new FlipFlop(78_000, 0, 3, 100, 300);
+new FlipFlop(45_000, 10_0000, 5, 50, 500);
+new FlipFlop(37_000, 5_0000, 1, 50, 300);
+new FlipFlop(24_000, 15_0000, 3, 100, 500);
 
 ['SIGINT', 'SIGQUIT', 'SIGTERM'].forEach(signal => {
   process.on(signal, function() {

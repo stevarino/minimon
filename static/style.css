@@ -34,11 +34,16 @@ a {
   position: relative;
 }
 
+#header h1 {
+  padding-left: 1em;
+}
+
 #header div {
   right: 1em;
   top: 1em;
   position: absolute;
 }
+
 #header span {
   display: inline-block;
   width: 6em;
