@@ -1,6 +1,6 @@
 {
-  "name": "monilite",
-  "version": "1.2.1",
+  "name": "squiggly-lines",
+  "version": "1.0.0",
   "description": "A minimal monitoring toolset designed for real time analysis of streaming data.",
   "keywords": [
     "monitoring"
