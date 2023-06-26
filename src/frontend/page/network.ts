@@ -1,6 +1,7 @@
 import { querySelector, formatBytes } from '../../lib';
 import { Packet } from '../packets';
 import { FrontendOptions } from '../../options';
+import { DemoEventSource, demoEventSource, demoOptions, IS_DEMO } from './frontendDemo';
 
 /** packet samples used for rate calculations */
 export const sample: {ms: number, size: number}[] = [];
@@ -22,6 +23,13 @@ function scan(str: string, needle: string, start: number): [result: string, next
     return ['', -1];
   }
   return [str.slice(start, end), end+1];
+}
+
+function setOptions(options: FrontendOptions) {
+  window.OPTIONS = options;
+  window.VIEW.setOptions(options);
+  querySelector('#header h1').innerText = options.title;
+  querySelector('#customInfo').innerHTML = options.about ?? '';
 }
 
 /** Update rate displays based on data in sample datastructure */
@@ -61,13 +69,18 @@ export function calculateRate() {
 
 calculateRate();
 
-const eventSource = new EventSource('/packets');
+let eventSource: EventSource|DemoEventSource|null = null;
+
+if (!IS_DEMO) {
+  eventSource = new EventSource('/packets');
+} else {
+  setOptions(demoOptions());
+  eventSource = demoEventSource();
+}
 
 /** Options packet from server to frontend - sent at connection */
 eventSource.addEventListener('options', event => {
-  const options: FrontendOptions = JSON.parse(event.data);
-  window.OPTIONS = options;
-  window.VIEW.setOptions(options);
+  setOptions(JSON.parse(event.data) as FrontendOptions);
 });
 
 /** Full packet sent (unused currently) */

@@ -13,6 +13,10 @@ export type FrontendOptions = {
   searchResults: number;
   /** Search result special prefix characters for sorting */
   searchPrefixes: string[];
+  /** Page Title */
+  title: string;
+  /** About panel html */
+  about?: string;
 }
 
 export type ServerOptions = {
@@ -115,6 +119,8 @@ const frontendSchema = new DefaultSchema<FrontendOptions>([
   ['collapseArrays', true],
   ['searchResults', 10],
   ['searchPrefixes', []],
+  ['title', 'Squiggly Lines'],
+  ['about', undefined],
 ], (options) => {
   options._msPerBucket = options.duration / options.buckets
 });
