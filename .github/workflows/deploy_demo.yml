@@ -8,36 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [16.x, 18.x]
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-
-    - name: Build
-      run: |
-        npm install
-        npm run build
-        
-  package:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/upload-pages-artifact@v1
-      with:
-        path: dist/static/
-
-  deploy:
-    # https://github.com/marketplace/actions/deploy-github-pages-site
-    needs: package
-
+    
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
       pages: write      # to deploy to Pages
@@ -47,8 +18,24 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
-    runs-on: ubuntu-latest
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js 16.x
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.x
+
+    - name: Build
+      run: |
+        npm install
+        npm run build
+
+    - name: Package static site
+      uses: actions/upload-pages-artifact@v1
+      with:
+        path: dist/static/
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v2
