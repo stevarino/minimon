@@ -14,8 +14,10 @@ export class DemoEventSource extends EventTarget {
   }
 }
 
-const params = new URLSearchParams(window.location.search);
-export const IS_DEMO = params.get('demo') !== null;
+/** IS_DEMO = true if URL includes a demo query string (?demo) or on github pages */
+export const IS_DEMO = (
+  new URLSearchParams(window.location.search).get('demo') !== null
+  || window.location.origin.endsWith('.github.io'));
 
 export function demoOptions() {
   return buildFrontendOptions({
