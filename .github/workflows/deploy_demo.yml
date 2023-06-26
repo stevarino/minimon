@@ -25,10 +25,18 @@ jobs:
       run: |
         npm install
         npm run build
+        
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/upload-pages-artifact@v1
+      with:
+        path: dist/static/
 
   deploy:
     # https://github.com/marketplace/actions/deploy-github-pages-site
-    needs: build
+    needs: package
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
