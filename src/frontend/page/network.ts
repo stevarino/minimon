@@ -29,6 +29,7 @@ function setOptions(options: FrontendOptions) {
   window.OPTIONS = options;
   window.VIEW.setOptions(options);
   querySelector('#header h1').innerText = options.title;
+  document.title = options.title;
   querySelector('#customInfo').innerHTML = options.about ?? '';
 }
 
