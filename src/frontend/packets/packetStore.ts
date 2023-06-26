@@ -1,8 +1,9 @@
 
 import { DefaultMap } from "../../lib";
-import { Dataset, Packet, Options, FinalOptions, optionsWithDefaults, NULL } from "./lib";
-import { FilterItem, FilterSet } from "./filters";
-import { FieldTrieRoot } from './fieldTrie'
+import { Dataset, Packet, NULL } from "./lib";
+import { FilterItem, FilterSet, Grouping } from "./filters";
+import { FieldContainer } from './fieldContainer'
+import { buildFrontendOptions, FrontendOptions } from "../../options";
 
 export interface Table {
   headers: string[];
@@ -16,32 +17,21 @@ export interface Table {
  * Intended as the primary datastore.
  */
 export class PacketStore {
-  // _normalizationPattern = /\.\d+/
-  // _tokenSplit = /\]\[|\[|\]|\./
-
-  // masterIndex: Map<number, Packet> = new Map();
   packets: Packet[] = [];
-  options: FinalOptions;
+  options: FrontendOptions;
   packetIds = new Map<number, Packet>();
 
-  // /** observed packet fields */
-  // fields: Set<string> = new Set();
-  // normalizedFields: DefaultMap<string, Set<string>> = new DefaultMap(() => new Set<string>());
+  root: FieldContainer;
 
-  // /** foo.bar.baz[0][1]blah => [foo, bar, baz, 0, 1, blah] */
-  // fieldTokens: DefaultMap<string, string[]> = new DefaultMap(
-  //   (field: string) => this.tokenizeField(field));
-
-  root = new FieldTrieRoot();
-
-
-  constructor(options: Options={}) {
-    this.options = optionsWithDefaults(options);
+  constructor(options?: FrontendOptions) {
+    const opts = options ?? buildFrontendOptions({});
+    this.options = opts;
+    this.root = new FieldContainer(opts);
   }
 
   /** Converts a ms timestamp to a left-aligned bucket value. */
   bucket(ms: number): number {
-    return Math.floor(Math.floor(ms / this.options.msPerBucket) * this.options.msPerBucket);
+    return Math.floor(Math.floor(ms / this.options._msPerBucket) * this.options._msPerBucket);
   }
 
   /**
@@ -54,57 +44,13 @@ export class PacketStore {
     this.packetIds.set(packet.header.id, packet);
 
     for (const key in packet.payload) {
-      // this.fields.add(key);
       this.root.addPacket(packet, filters);
-      // let norm = this.normalizeField(key);
-      // this.normalizedFields.getOrCreate(norm).value.add(key);
-      // this.fieldTokens.getOrCreate(key);
-      // this.fields.add(norm);
     }
   }
 
   addFilter(item: FilterItem) {
     this.root.addFilter(item);
   }
-
-  // tokenizeField(field: string) {
-  //   return field.replace(/\]$/, '').split(this._tokenSplit);
-  // }
-
-  // normalizeField(field: string) {
-  //   return field.replace(this._normalizationPattern, '[*]').replace('].', ']');
-  // }
-
-  // /** Given a field (with possible wildcards), return all known matching fields. */
-  // findFields(search: string) {
-    
-  //   // const norm = this.normalizeField(search);
-  //   // const tokens = this.tokenizeField(search);
-  //   // let fields = this.normalizedFields.get(norm);
-  //   if (fields === undefined) {
-  //     console.error(`Normalized field not found: "${norm}" ("${search}")`);
-  //     return [search];
-  //   }
-  //   if (fields.has(search)) {
-  //     return [search];
-  //   }
-  //   const results: string[] = [];
-  //   fields.forEach(field => {
-  //     const fieldTokens = this.fieldTokens.getOrCreate(field).value;
-  //     let isMatch = true;
-  //     for (let i=0; i<tokens.length; i++) {
-  //       const token = tokens[i];
-  //       if (token !== '*' && token !== fieldTokens[i]) {
-  //         isMatch = false;
-  //         break;
-  //       }
-  //     }
-  //     if (isMatch) {
-  //       results.push(field);
-  //     }
-  //   });
-  //   return results;
-  // }
 
   /** Remove all values < ms. */
   trim(ms: number) {
@@ -132,7 +78,7 @@ export class PacketStore {
     const datasetMap = new DefaultMap<string, XYMap>(() => new XYMap(() => 0));
     for (const packet of this.packets) {
       if (filters.isFiltered(packet)) continue;
-      let grp = filters.getPacketGrouping(packet, groups);
+      let grp = filters.getPacketGroupingString(packet, groups);
       let dm = datasetMap.getOrCreate(grp).value;
       const packet_x = this.bucket(packet.header.ms);
       dm.set(packet_x, (dm.getOrCreate(packet_x).value) + 1);
@@ -153,11 +99,12 @@ export class PacketStore {
     const groups = filters.getGroups();
     const fields: string[] = [];
     for (const [_, item] of filters.getItems()) {
-      fields.push(...item.getFields())
+      fields.push(...item.getFields());
     }
     const headers = ['_cnt', '_sz', ...fields];
     const packets = new Map<number, Packet>();
 
+    /** packet-grouping to packet count and size (each grouping is one row) */
     const rowMap = new DefaultMap<string, {cnt: number, size: number}>(() => {
       return {cnt: 0, size: 0};
     });
@@ -165,18 +112,29 @@ export class PacketStore {
     for (const packet of this.packets) {
       if (filters.isFiltered(packet)) continue;
       packets.set(packet.header.id, packet);
-      const grp = filters.getPacketGrouping(packet, groups);
+      const grp = filters.getPacketGroupingString(packet, groups);
       const row = rowMap.getOrCreate(grp).value;
       row.cnt += 1;
-      row.size += packet.header.size as number;
+      row.size += packet.header.size;
     }
     const rows: string[][] = [];
     rowMap.forEach((size, key) => {
-      const entries = new URLSearchParams(key);
+      const entries: Grouping = JSON.parse(key);
       rows.push([
         String(size.cnt),
         String(size.size),
-        ...fields.map(f => entries.get(f) ?? NULL),
+        ...fields.map(f => {
+          // non-wildcard search - 1:1 searchTerm to field
+          if (entries[f] !== undefined) {
+            return (entries[f][f]) ?? NULL;
+          }
+          for (const [_, fieldVals] of Object.entries(entries)) {
+            if (typeof fieldVals === 'object' && fieldVals[f] !== undefined) {
+              return fieldVals[f];
+            }
+          }
+          return NULL;
+        }),
       ]);
     });
     return {
@@ -188,7 +146,7 @@ export class PacketStore {
 
   tabulateUnaggregated(filters: FilterSet, limit: number): Table {
     const fields: string[] = [];
-    for (const [param, item] of filters.getItems()) {
+    for (const [_, item] of filters.getItems()) {
       fields.push(...item.getFields());
     }
     const headers = ['_id', '_sz', ...fields];
@@ -215,11 +173,12 @@ export class PacketStore {
     }
   }
 
-  // denormalize(field: string): Set<string> {
-  //   return this.normalizedFields.get(field) ?? new Set(field);
-  // }
-  
   getFields(): string[] {
-    return Array.from(this.root.getFields());
+    return Array.from(this.root.getPaths());
+  }
+
+  updateOptions(options: FrontendOptions) {
+    this.options = options;
+    this.root.updateOptions(options);
   }
 }

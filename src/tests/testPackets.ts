@@ -1,5 +1,6 @@
 import test from 'ava';
 import * as packets from "../frontend/packets";
+import { buildFrontendOptions } from '../options';
 
 let _testPacketId = 0;
 function getTestPacket(
@@ -23,24 +24,24 @@ function getTestPacket(
 const NULL_UTF8 = '%E2%90%80';
 
 test('IndexRender', t => {
-  const index = new packets.PacketStore();
-  const filters = new packets.FilterSet(index);
-  index.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
-  let view = index.render();
+  const store = new packets.PacketStore();
+  const filters = new packets.FilterSet(store);
+  store.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
+  let view = store.render();
   t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 1}]}]);
 });
 
 test('IndexGroups', t => {
-  const index = new packets.PacketStore();
-  const filters = new packets.FilterSet(index);
-  index.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
-  index.addPacket(getTestPacket({}, {foo: 'baz'}), filters);
-  index.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
+  const store = new packets.PacketStore();
+  const filters = new packets.FilterSet(store);
+  store.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
+  store.addPacket(getTestPacket({}, {foo: 'baz'}), filters);
+  store.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
   filters.addGroup('foo');
-  const view = index.render(filters);
+  const view = store.render(filters);
   t.deepEqual(view, [
-    {label: 'foo=bar', data: [{x: 1000, y: 2}]},
-    {label: 'foo=baz', data: [{x: 1000, y: 1}]},
+    {label: '{"foo":{"foo":"bar"}}', data: [{x: 1000, y: 2}]},
+    {label: '{"foo":{"foo":"baz"}}', data: [{x: 1000, y: 1}]},
   ]);
 });
 
@@ -55,9 +56,16 @@ test('IndexMultiGroups', t => {
   filters.addGroup('bar');
   const view = index.render(filters);
   t.deepEqual(view.length, 3);
-  t.assert(view.some((r) => r.label == `foo=a&bar=${NULL_UTF8}` && r.data[0].y == 1));
-  t.assert(view.some((r) => r.label == 'foo=b&bar=c' && r.data[0].y == 1));
-  t.assert(view.some((r) => r.label == 'foo=a&bar=a' && r.data[0].y == 1));
+  const expectedLabels = [
+    {foo: {foo: "a"}, bar: {bar: packets.NULL}},
+    {foo: {foo: "b"}, bar: {bar: "c"}},
+    {foo: {foo: "a"}, bar: {bar: "a"}},
+  ]
+  expectedLabels.forEach(label => {
+    t.assert(
+      view.some((r) => r.label == JSON.stringify(label) && r.data[0].y == 1),
+      `Expected label "${label}", received ${view.map(r => r.label)}`)
+  });
 });
 
 test('IndexFilterEqual', t => {
@@ -116,14 +124,22 @@ test('ViewManyGroups', t => {
   view.addGroup('foo');
   view.addGroup('bar');
   t.deepEqual(dataset.length, 3);
-  t.assert(dataset.some((r) => r.label == `foo=a&bar=${NULL_UTF8}` && r.data[0].y == 1));
-  t.assert(dataset.some((r) => r.label == 'foo=b&bar=c' && r.data[0].y == 1));
-  t.assert(dataset.some((r) => r.label == 'foo=a&bar=a' && r.data[0].y == 1));
+  
+  const expectedLabels = [
+    {foo: {foo: "a"}, bar: {bar: packets.NULL}},
+    {foo: {foo: "b"}, bar: {bar: "c"}},
+    {foo: {foo: "a"}, bar: {bar: "a"}},
+  ]
+  expectedLabels.forEach(label => {
+    t.assert(
+      dataset.some((r) => r.label == JSON.stringify(label) && r.data[0].y == 1),
+      `Expected label "${label}", received ${dataset.map(r => r.label)}`)
+  });
 });
 
 test('ViewExpiry', t => {
   const dataset: packets.Dataset[] = [];
-  const view = new packets.View(dataset, ()=>{}, { duration: 60_000 });
+  const view = new packets.View(dataset, ()=>{}, buildFrontendOptions({duration: 60_000}));
   for (let i=0; i<10; i++) {
     view.addPacket(getTestPacket({ms: i * 1000}, {}), 1000);
   }

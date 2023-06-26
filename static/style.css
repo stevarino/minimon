@@ -70,6 +70,15 @@ a {
   font-style: sans-serif;
 }
 
+#tooltip p {
+  margin-bottom: 0;
+  text-align: center;
+}
+
+#tooltip table {
+  width: 100;
+}
+
 #sidebar {
   position: fixed;
   top: 0;
@@ -97,11 +106,12 @@ a {
   width: 48px;
 }
 
-#sidebar>ul li {
+.buttons > * {
   list-style: none;
   display: block;
   width: 24px;
   border: 1px solid #efefef;
+  background-color: #fff;;
   border-radius: 0.25em;
   margin: 24px auto;
   text-align: center;
@@ -109,12 +119,25 @@ a {
   padding: 5px;
 }
 
-#sidebar>ul li:hover {
-  box-shadow: 1px 1px #ccc;
+/** ` :hover` and `*:hover` don't seem to work... */
+.buttons li:hover, .buttons button:hover, .buttons .active {
+  box-shadow: 2px 2px #aaa;
 }
 
-#sidebar>ul li.active {
-  box-shadow: 1px 1px #ccc;
+#sidebar.collapsed .tab_buttons {
+  display: none;
+}
+
+.tab_buttons {
+  position: absolute;
+  right: calc(42px + 2em);
+  top: 1em;
+  z-index: 10;
+}
+
+.tab_buttons button {
+  margin: 0 6px;
+  display: inline-block;
 }
 
 #sidebar>div {
@@ -123,9 +146,13 @@ a {
   top: 0;
   bottom: 0;
   left: 0;
-  right: 4em;
+  right: 48px;
   padding: 0 1em;
   overflow-y: scroll; 
+}
+
+#sidebar > div > button {
+  display: none;
 }
 
 .material-symbols-outlined {
@@ -248,21 +275,25 @@ input[type=submit], button {
   background: mintcream;
 }
 
-#s_table_view .row {
+#tablePanel #table_cnt{
+  width: 100%;
+}
+
+#tablePanel .row {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-gap: 1em;
 }
-#s_table_view .row button {
+#tablePanel .row button {
   font-size: 0.66em;
 }
 
-#s_table_view table {
+#tablePanel table {
   margin-top: 1em;
   width: 100%;
 }
 
-#s_table_view th {
+#tablePanel th {
   background: #f6f6ff;
   cursor: pointer;
 }
@@ -272,16 +303,18 @@ dialog {
   width: 60%;
 }
 
+dialog h1 {
+  margin: 0.25em;
+}
+
+dialog .tab_buttons {
+  right: 1em;
+}
+
 dialog>div {
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100%;
-}
-
-dialog>div>div {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  grid-gap: 1em;
 }
 
 dialog pre {

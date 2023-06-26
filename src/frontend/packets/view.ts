@@ -1,13 +1,14 @@
 
-import { Dataset, Packet, Options, FinalOptions, optionsWithDefaults, NULL, ROOT } from "./lib";
-import { EQUALS, FilterSet, FilterType } from "./filters";
+import { Dataset, Packet } from "./lib";
+import { EQUALS, FilterSet, FilterType, Grouping } from "./filters";
 import { PacketStore, Table } from "./packetStore";
+import { FrontendOptions, buildFrontendOptions } from '../../options';
 
 /** Set of active filters and groups. */
 export class View {
   /** List of current filters (including groups) */
   filters: FilterSet;
-  indexes: PacketStore;
+  storage: PacketStore;
   updateCallback: ()=> void;
   lastRefresh = 0;
   refreshInterval = 300;
@@ -15,21 +16,23 @@ export class View {
   // the current view - mapping of time => (datafield => total)
   chartData: Dataset[];
   _currentTime: number = 0;
-  options: FinalOptions;
+  options: FrontendOptions;
 
-  constructor(chartData: Dataset[], updateCallback: (min: number, max: number)=> void, options: Options = {}) {
-    this.indexes = new PacketStore();
-    this.filters = new FilterSet(this.indexes);
+  constructor(chartData: Dataset[], updateCallback: (min: number, max: number)=> void, options?: FrontendOptions) {
     this.chartData = chartData;
-    this.options = optionsWithDefaults(options);
+
+    this.options = options ?? buildFrontendOptions({});
+    this.storage = new PacketStore(this.options);
+    this.filters = new FilterSet(this.storage);
+
     this.updateCallback = () => updateCallback(
-      this._currentTime - this.options.duration - this.options.msPerBucket,
-      this._currentTime - this.options.msPerBucket);
+      this._currentTime - this.options.duration - this.options._msPerBucket,
+      this._currentTime - this.options._msPerBucket);
   }
 
   /** Generate a new series of datasets and merge it with the graph datasets */
   reindex() {
-    const newData = this.indexes.render(this.filters);
+    const newData = this.storage.render(this.filters);
     this.chartData.length = 0;
     for (const dataset of newData) {
       this.chartData.push(dataset);
@@ -82,17 +85,19 @@ export class View {
    * 
    * @param filter URLSearchParams encoded filters 'foo=bar&baz=1'
    */
-  applyFilterSet(filter: string) {
-    const params = Array.from(new URLSearchParams(filter));
-    params.forEach(([key, val]) => {
-      this.filters.addFilter(key, EQUALS, val);
-      this.filters.removeGroup(key);
+  applyFilterSet(filters: [string, string, string][], removeGroup?: string) {
+      filters.forEach(([key, filter, val]) => {
+      this.filters.addFilter(key, FilterType.get(filter), val);
+      if (removeGroup !== undefined) {
+        this.filters.removeGroup(removeGroup);
+      }
     });
     this.reindex();
   }
 
+  /** Garbage collect chartData (and then reaquest storage to do so also) */
   trim(now: number) {
-    const ms = now - this.options.duration - 2 * this.options.msPerBucket;
+    const ms = now - this.options.duration - 2 * this.options._msPerBucket;
     for (const dataset of this.chartData) {
       let i = 0;
       for (const pt of dataset.data) {
@@ -101,23 +106,14 @@ export class View {
       }
       dataset.data.splice(0, i - 1);
     }
-    this.indexes.trim(ms);
-  }
-
-  onPacket(packetData: string, callback?: (packet: Packet) => void) {
-    const packet: Packet = JSON.parse(packetData);
-    packet.header.size = packetData.length;
-    if (callback !== undefined) {
-      callback(packet);
-    }
-    this.addPacket(packet);
+    this.storage.trim(ms);
   }
 
   /** Adds a packet to both index and current view. */
   addPacket(packet: Packet, now: number|undefined=undefined) {
     if (now === undefined) now = new Date().getTime();
-    this.indexes.addPacket(packet, this.filters);
-    const bucket = this.indexes.bucket(packet.header.ms);
+    this.storage.addPacket(packet, this.filters);
+    const bucket = this.storage.bucket(packet.header.ms);
 
     if (this._currentTime === 0) {
       this._currentTime = bucket;
@@ -132,7 +128,7 @@ export class View {
       return;
     }
 
-    const label = this.filters.getPacketGrouping(packet);
+    const label = this.filters.getPacketGroupingString(packet);
     let found = false;
     for (const dataset of this.chartData) {
       if (dataset.label == label) {
@@ -161,17 +157,8 @@ export class View {
   }
 
   /** Returns observed fields. */
-  getFields(): string[] {
-    const fields = this.indexes.getFields();
-    return Array.from(fields).sort((a: string, b: string) => {
-      if (a.startsWith('_') && !b.startsWith('_')) {
-        return -1;
-      }
-      if (b.startsWith('_') && !a.startsWith('_')) {
-        return 1;
-      }
-      return a < b ? -1 : 1;
-    });
+  *getFields() {
+    yield* this.storage.getFields();
   }
 
   getGroups(): string[] {
@@ -184,7 +171,7 @@ export class View {
 
   getPackets()  {
     const packets = [];
-    for (const packet of this.indexes.packets) {
+    for (const packet of this.storage.packets) {
       if (!this.filters.isFiltered(packet)) {
         packets.push(packet);
       }
@@ -194,8 +181,13 @@ export class View {
 
   getTabularPackets(limit: number): Table {
     if (this.getGroups().length === 0) {
-      return this.indexes.tabulateUnaggregated(this.filters, limit);
+      return this.storage.tabulateUnaggregated(this.filters, limit);
     }
-    return this.indexes.tabulateAggregate(this.filters);
+    return this.storage.tabulateAggregate(this.filters);
+  }
+
+  setOptions(options: FrontendOptions) {
+    this.options = options;
+    this.storage.updateOptions(options);
   }
 }

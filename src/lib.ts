@@ -1,4 +1,3 @@
-
 /** A Map object with a preset default (enable with getOrCreate) */
 export class DefaultMap<K, V> extends Map<K,V> {
   callback: (arg?: any) => V;
@@ -59,48 +58,6 @@ class Key {
 
 /** Generates a series of [key: val] values from a flattened json object */
 export function* flatten(params: unknown, filters?: Array<string>) {
-  function* _filter(path: Key, key: string, val: unknown, filters: Array<Array<string>>): Generator<[Key, string]> {
-    const newFilters = [];
-    for (const f of filters) {
-      if (f.length == 1 && f[0] == key) return;
-      const newF = f.slice();
-      const last = newF.pop();
-      if (last == key) newFilters.push(newF);
-    }
-    yield* _flatten(path.createChild(key), val, newFilters);
-  }
-
-  function* _flatten(path: Key, target: unknown, filters: Array<Array<string>>): Generator<[Key, string]> {
-    let i = 0;
-    if (Array.isArray(target)) {
-      for (const item of target) {
-        if (typeof(item) === 'number') {
-          // assuming this is a tuple
-          yield [path, JSON.stringify(target)];
-          return;
-        }
-        yield* _filter(path, String(i++), item, filters);
-      }
-      return;
-    }
-    switch(typeof(target)) {
-      case 'string':
-        yield [path, target];
-        break;
-      case 'number':
-      case 'bigint':
-      case 'boolean':
-        yield [path, String(target)];
-        break;
-      case 'object':
-        for (const [key, val] of Object.entries(target as object)) {
-          yield* _filter(path, key, val, filters);
-        }
-        break;
-      default:
-        throw new Error('Unrecognized object type: ' + typeof(target));
-    }
-  }
   filters = filters || [];
   let revFilters = filters.map(f => {
     const a = f.split('.')
@@ -108,8 +65,58 @@ export function* flatten(params: unknown, filters?: Array<string>) {
     return a;
   })
 
-  for (const [key, val] of _flatten(new Key(), params, revFilters)) {
+  for (const [key, val] of flattenRecursive(new Key(), params, revFilters)) {
     yield [key.toString(), val];
+  }
+}
+
+function* flattenFilter(path: Key, key: string, val: unknown, filters: string[][]): Generator<[Key, string]> {
+  const newFilters = [];
+  for (const filter of filters) {
+    if (filter.length === 1 && (filter[0] == key || filter[0] === '*' || filter[0] === '**')) return;
+    const newFilter = filter.slice();
+    const last = newFilter.pop();
+    if (last === key || last === '*') newFilters.push(newFilter);
+    if (last === '**') {
+      newFilters.push(newFilter);
+      const recursiveFilter = newFilter.slice();
+      recursiveFilter.push('**');
+      newFilters.push(recursiveFilter);
+    }
+  }
+  yield* flattenRecursive(path.createChild(key), val, newFilters);
+}
+
+function* flattenRecursive(path: Key, target: unknown, filters: string[][]): Generator<[Key, string]> {
+  let i = 0;
+  if (Array.isArray(target)) {
+    for (const item of target) {
+      if (typeof(item) === 'number') {
+        // assuming this is a tuple
+        yield [path, JSON.stringify(target)];
+        return;
+      }
+      yield* flattenFilter(path, String(i++), item, filters);
+    }
+    return;
+  }
+  switch(typeof(target)) {
+    case 'string':
+      yield [path, target];
+      break;
+    case 'number':
+    case 'bigint':
+    case 'boolean':
+    case 'undefined':
+      yield [path, String(target)];
+      break;
+    case 'object':
+      for (const [key, val] of Object.entries(target as object)) {
+        yield* flattenFilter(path, key, val, filters);
+      }
+      break;
+    default:
+      throw new Error('Unrecognized object type: ' + typeof(target));
   }
 }
 
@@ -199,15 +206,14 @@ export function inflateObject(obj: {[key: string]: string}) {
   return _check(output);
 }
 
-export function selector(selector: string, callback: (el: HTMLElement) => void) {
-  const el = document.querySelector(selector);
-  if (el !== null) {
-    callback(el as HTMLElement);
-    return true;
-  }
-  console.error(`Unable to find selector: "${selector}`);
+/** Calls document.querySelector, raising an exception on not found. */
+export function querySelector<T extends HTMLElement = HTMLElement>(selector: string) {
+  const el = document.querySelector<T>(selector);
+  if (el !== null) return el;
+  throw new Error(`Unable to find selector: "${selector}`);
 }
 
+/** Converts a number into binary-based byte string */
 export function formatBytes(bytes: number, decimals = 2) {
   // https://stackoverflow.com/a/18650828
   if (!+bytes) return '0B'
@@ -260,4 +266,74 @@ export class BiMap<T, U> extends Map<T, U> {
     }
     return this.reverse.delete(key);
   }
+}
+
+/** Builds a regex-escape function, skipping provided characters */
+export function regexEscaper(skip: string='') {
+  const escapeBrackets = (s: string) => s.replace(']', '\\]').replace('[', '\\[');
+  const skipRe = new RegExp(`[${escapeBrackets(skip)}]`);
+  const chars = escapeBrackets('.+*?^$()[]{}|'.replace(skipRe, ''));
+  const charsRe = new RegExp(`[${chars}]`)
+  return (str: string) => str.replace(charsRe, c => '\\' + c);
+}
+
+/** Escapes standard regex characters */
+export const regexEscape = regexEscaper();
+/** Escapes regex characters except for "*" */
+const globRegexEscape = regexEscaper('*');
+
+/** Converts a glob pattern (* and ** wildcards) to a Regex */
+export function globToRegex(glob: string, sep: string) {
+  const escaped = globRegexEscape(glob);
+  // replace * with [^{sep}] and ** with .*
+  const wildcards = escaped.split('**').map(s => s.replace('*', `[^${sep}]+`)).join('.*');
+  return new RegExp(`^${wildcards}$`);
+}
+
+/** Test if an object is indeed empty */
+export function isEmptyObject(obj: any) {
+  // https://stackoverflow.com/a/59787784
+  for(var i in obj) { return false; }
+  return true;
+}
+
+/** Creates an HTML document text node */
+export function htmlText(t: string) {
+  return document.createTextNode(t);
+}
+
+type ElementAttributes = {
+  href?: string,
+  title?: string,
+
+  innerText?: string,
+  innerHTML?: string,
+  classList?: string[],
+  dataset?: {[key: string]: string}
+  style?: {[key: string]: string}
+  onClick?: (e: MouseEvent)=>any,
+}
+export function htmlElement(tagName: string, attrs?: ElementAttributes, ...children: Node[]) {
+  const el = document.createElement(tagName);
+  for (const [attr, val] of Object.entries(attrs ?? {})) {
+    switch(attr) {
+      case 'innerText': el.innerText = val as string; break;
+      case 'innerHTML': el.innerHTML = val as string; break;
+      case 'classList': (val as string[]).forEach(c => el.classList.add(c)); break
+      case 'dataset':
+        for (const [k, v] of Object.entries(val)) {
+          el.dataset[k] = v as string;
+        }
+        break;
+      case 'style':
+        for (const [k, v] of Object.entries(val)) {
+          el.style.setProperty(k, v);
+        }
+        break;
+      case 'onClick': el.addEventListener('click', val as (e: Event) => any); break;
+      default: el.setAttribute(attr, val as string);
+    }
+  }
+  children.forEach(c => el.appendChild(c));
+  return el;
 }

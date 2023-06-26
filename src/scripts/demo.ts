@@ -4,9 +4,7 @@
 
 import { Server } from '..';
 
-const server = new Server({port: 8080});
-
-const PI_2 = Math.PI * 2;
+const server = new Server({server: {port: 8080}});
 
 class FlipFlop {
   frequency: number;
@@ -29,14 +27,19 @@ class FlipFlop {
     const x = (now - this.offset) % this.frequency / this.frequency;
     let timeout = this.fast;
     if (x > 0.5) timeout = this.slow;
-    for (let i=0; i<this.count; i++) {
+    const dice: string[] = [];
+    for (let i=0; i<4*Math.random(); i++) {
+      dice.push(String(Math.floor(Math.random() * 6 + 1)))
+    }
+    for (let index=0; index<this.count; index++) {
       server.jsonEvent({
         slow: this.slow,
         fast: this.fast,
         offset: this.offset,
         frequency: this.frequency,
         isfast: x < 0.5,
-        index: i
+        index,
+        dice
       })
     }
     setTimeout(() => this.tick(), timeout);

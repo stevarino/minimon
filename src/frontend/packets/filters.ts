@@ -3,6 +3,7 @@
  * 
  * FilterSet
  *   - FilterItem[]
+ *       - isGrouped
  *       - Filter[]
  *          - FilterType
  *          - testValue
@@ -10,25 +11,34 @@
  *           - field
  */
 
-import { FieldTrie } from "./fieldTrie";
+import { globToRegex, isEmptyObject } from "../../lib";
+import { Trie } from "./trie";
 import { Packet, ROOT, NULL } from "./lib"
 import { PacketStore } from './packetStore';
 
 
+/** Function signature for tests used internally in filters. */
 type testSig = (val: string|undefined, testVal: string|RegExp) => boolean;
-type FilterTriple = {param: string, type: FilterType, value: string};
+/** Mapping of searchTerm to value, or searchTerm to set of field = value, for a packet */
+export type Grouping = {[searchTerm: string]: {[field: string]: string}};
 
 /** represents an abstract test case */
 export class FilterType {
   static types: FilterType[] = [];
 
+  /** Display label (i.e. "==") */
   label: string;
+  /** Returns true if filter conditions met */
   check: testSig;
 
   constructor(label: string, check: testSig) {
     this.label = label;
     this.check = check;
     FilterType.types.push(this);
+  }
+
+  toJSON() {
+    return this.label;
   }
 
   static forEach(callback: (type: FilterType) => void) {
@@ -47,8 +57,8 @@ export class FilterType {
 
 export class REType extends FilterType {};
 
-export const EQUALS = new FilterType('==', (v, t) => v === t);
-export const NOT_EQUALS = new FilterType('!=', (v, t) => v !== t);
+export const EQUALS = new FilterType('==', (v, t) => v === t || (v === undefined && t === NULL));
+export const NOT_EQUALS = new FilterType('!=', (v, t) => v !== t && (v !== undefined || t !== NULL));
 export const MATCHES = new REType('~',  (v, t) => v !== undefined && (t as RegExp).test(v));
 export const NOT_MATCHES = new REType('!~', (v, t) => v !== undefined && !(t as RegExp).test(v));
 
@@ -74,12 +84,17 @@ export class Filter {
 /** Contains a set of Fields (via FieldTrie) and set of Filters to match against */
 export class FilterItem {
   searchParam: string;
+
+  regex: RegExp | undefined = undefined;
   filters: Filter[] = [];
-  _fields: FieldTrie[] = [];
+  _fields: Trie<number>[] = [];
   _isGrouped = false;
 
   constructor(key: string) {
     this.searchParam = key;
+    if (key.indexOf('*') > -1) {
+      this.regex = globToRegex(key, '.');
+    }
   }
 
   /** Determine if this item is safe to remove, and if so, clean up references. */
@@ -98,28 +113,31 @@ export class FilterItem {
   removeFilter(type: FilterType, value: string): boolean {
     let ids: number[] = [];
     this.filters.forEach((filter, i) => {
-      if (filter.type == type && filter.testValue == value) {
+        if (filter.type == type && String(filter.testValue) == value) {
         ids.push(i);
       }
     });
-    for (let i=ids.length - 1; i >= 0; i--) {
-      this.filters.splice(i, 1);
-    }
+    ids.reverse().forEach(i => this.filters.splice(i, 1));
     return this.safeToRemove();
   }
 
-  addField(field: FieldTrie) {
+  addField(field: Trie<number>) {
     this._fields.push(field);
   }
 
-  *getFields(): IterableIterator<string> {
+  *getFields() {
     const removed = [];
     for(let i=0; i<this._fields.length; i++) {
       const field = this._fields[i];
       if (field.parent === null) {
         removed.push(i);
-      } else if (field.field !== undefined) {
-        yield field.field;
+      } else {
+        for (const f of field.getPaths()) {
+          if ((this.regex !== undefined && this.regex?.test(f))
+              || (this.regex === undefined && this.searchParam == f)) {
+            yield f;
+          }
+        }
       }
     }
     for (let i=removed.length-1; i >= 0; i--) {
@@ -152,7 +170,7 @@ export class FilterSet {
 
   getGroups(): FilterItem[] {
     const groups: FilterItem[] = [];
-    for (const [param, item] of this.items) {
+    for (const [_, item] of this.items) {
       if (item.isGroup()) {
         groups.push(item);
       }
@@ -161,29 +179,40 @@ export class FilterSet {
   }
 
   /** Returns the values of a set of groups for a packet. */
-  getPacketGrouping(packet: Packet, groups?: FilterItem[]): string {
+  getPacketGrouping(packet: Packet, groups?: FilterItem[]): Grouping {
     if (groups === undefined) {
-      groups = [];
-      this.items.forEach(item => {
-        if (item.isGroup()) {
-          groups?.push(item)
-        }
-      })
+      groups = this.getGroups();
     }
     if (groups.length === 0) {
-      return ROOT;
+      return {};
     }
 
-    const fields: Map<string, string> = new Map();
+    const groupedFields: Grouping = {};
     for (const item of groups) {
+      const matchedFields: {[field: string]: string} = {}
       for (const field of item.getFields()) {
-        fields.set(field, (packet.payload[field] ?? NULL) as string);
+        if (item.regex == undefined || item.regex.test(field)) {
+          matchedFields[field] = packet.payload[field] ?? NULL;
+        }
       }
+      groupedFields[item.searchParam] = matchedFields;
     };
-    return new URLSearchParams(Object.fromEntries(fields)).toString();
+    return groupedFields;
   }
 
-  /** Test if a packet should be filtered (returns true if filtered) */
+  /** Return a stringified version of getPacketGrouping (or NULL if no groups) */
+  getPacketGroupingString(packet: Packet, groups?: FilterItem[]): string {
+    const groupings = this.getPacketGrouping(packet, groups);
+    if (isEmptyObject(groupings)) return ROOT;
+    // TODO: Figure out a more efficient way to do this. Registry? Symbols?
+    return JSON.stringify(groupings);
+  }
+
+  /**
+   * Test if a packet should be filtered (returns true if filtered).
+   * 
+   * If any Filter for a filterset fails, the packet is filtered.
+   * */
   isFiltered(packet: Packet) {
     for (const [key, items] of this.items) {
       for (const filter of items.filters) {
@@ -194,11 +223,13 @@ export class FilterSet {
             break;
           }
         }
+        // a Filter was not met, packet is filtered
         if (!keep) {
           return true;
         }
       }
     }
+    // all FilterItems were met, packet is not filtered
     return false;
   }
 

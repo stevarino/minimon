@@ -1,9 +1,25 @@
 import * as packets from "../packets"
-import { inflateObject, formatBytes } from '../../lib'
+import { inflateObject, formatBytes, querySelector } from '../../lib'
+import { buttonCallbacks } from './panels';
 
 declare global {
   var TABLE: packets.Table;
 }
+
+Object.assign(buttonCallbacks, {
+  createTable,
+  loadTable: function() {
+    createTable();
+  },
+  dialogHide: function() {
+    querySelector<HTMLDialogElement>('#modal').close();
+    querySelector('#modal pre').innerText = '';
+  },
+  dialogCopy: function() {
+    const pre = querySelector<HTMLPreElement>('#modal pre');
+    navigator.clipboard.writeText(pre.innerText);
+  }
+});
 
 function getCellValue(cell: Element, idx: number) {
   const el = (cell.children[idx] as HTMLElement);
@@ -21,41 +37,25 @@ function comparer(idx: number, asc: boolean) {
     }(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
 }};
 
-document.querySelector('#modal .copy')?.addEventListener('click', (e) => {
-  const pre = document.querySelector('#modal pre');
-  if (pre === null) {
-    console.error('Unable to find `#modal pre`');
-    return
-  }
-  navigator.clipboard.writeText((pre as HTMLElement).innerText);
-});
-
-document.querySelector('#modal .close')?.addEventListener('click', (e) => {
-  // @ts-ignore
-  document.querySelector('#modal')?.close();
-});
-
-document.getElementById('table_load')?.addEventListener('click', (e) => {
+function createTable() {
   const headerTitles: {[key: string]: string} = {
     '_id': 'Unique Packet Identifier',
     '_sz': 'Approxmate Packet Size',
     '_cnt': 'Count of packets',
   }
-  const cnt = document.getElementById('table_cnt');
-  if (cnt === null) {
-    console.error('Failed to load #table_cnt');
-    return;
+  const cnt = querySelector<HTMLSelectElement>('#table_cnt');
+  
+  if (window.VIEW.getGroups().length > 0) {
+    cnt.style.display = 'block';
+  } else {
+    cnt.style.display = 'none';
   }
 
   const tableData = window.VIEW.getTabularPackets(
     Number((cnt as HTMLSelectElement).value));
   window.TABLE = tableData;
 
-  const table = document.getElementById('table_table');
-  if (table === null) {
-    console.error('Failed to load #table_table');
-    return;
-  }
+  const table = querySelector('#table_table');
   table.innerHTML = '';
   const thead_tr = document.createElement('tr');
   table.append(thead_tr);
@@ -102,19 +102,8 @@ document.getElementById('table_load')?.addEventListener('click', (e) => {
             return;
           }
           const packetString = JSON.stringify(inflateObject(packet.payload), undefined, 2);
-          const modal = document.querySelector('#modal');
-          if (modal === null) {
-            console.error('Unable to locate #modal');
-            return;
-          }
-          const pre = modal.querySelector('pre');
-          if (pre === null) {
-            console.error('Unable to locate #modal');
-            return;
-          }
-          pre.innerText = packetString;
-          // @ts-ignore
-          modal.showModal();
+          querySelector('#modal pre').innerText = packetString;
+          querySelector<HTMLDialogElement>('#modal').showModal();
         });
         td.appendChild(a);
       } else if (tableData.headers[i] === '_sz') {
@@ -127,5 +116,5 @@ document.getElementById('table_load')?.addEventListener('click', (e) => {
     });
     table.appendChild(tr);
   });
-});
+};
 

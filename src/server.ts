@@ -1,15 +1,12 @@
-import { IncomingMessage, ServerResponse, createServer } from "http";
-import * as path from 'path';
+import { hrtime } from 'node:process';
+import { IncomingMessage, ServerResponse, createServer } from "node:http";
+import * as path from 'node:path';
+
 import * as lib from './lib';
-import { Blob } from 'node:buffer';
+import { Options, PartialOptions, buildOptions } from './options';
 
 const serveStatic = require('serve-static');
 const finalhandler = require('finalhandler');
-
-export interface ServerOptions {
-  port: number;
-  jsonFilters?: string[];
-}
 
 export interface EventOptions {
   filters?: string[],
@@ -19,15 +16,14 @@ export class Server {
   listeners: Set<ServerResponse>;
   responseId: number = 0;
   packetId: number = 0;
-  options: ServerOptions;
+  options: Options;
 
-  constructor(options: ServerOptions) {
+  constructor(options?: PartialOptions) {
     const fileServer = serveStatic(path.resolve(__dirname, 'static'), {
       index: ['index.html', 'index.htm']
     });
     this.listeners = new Set<ServerResponse>();
-    options.jsonFilters = options.jsonFilters ?? [];
-    this.options = options;
+    this.options = buildOptions(options ?? {});
 
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       console.log(req.url);
@@ -39,37 +35,57 @@ export class Server {
           });
           res.flushHeaders();
           this.listeners.add(res);
+          this.write('options', JSON.stringify(this.options.frontend));
           break;
         default:
           fileServer(req, res, finalhandler(req, res));
       }
     });
-    server.listen(options.port);
-    console.log(`Web server running on port ${options.port}`);
+    server.listen(this.options.server.port);
+    console.log(`Web server running on port ${this.options.server.port}`);
   }
 
-  /**
-   * Converts a json document into a stremed event.
-   * 
-   * @param packet object to be json-ified
-   * @param addSize whether or not to add a size field to it
-   */
-  async jsonEvent(packet: unknown, options?: EventOptions) {
-    const header = {header: {
-      id: this.packetId++,
+  /** Converts a json document into a stremed event. */
+  async jsonEvent(packet: unknown, options?: EventOptions, fieldCallback?: (key:string, val: string) => void): Promise<{us: number, size: number, warnings: string[]}> {
+    const packetId = this.packetId++;
+    let fieldCnt = 0;
+    let size = 0;
+    const hrt = hrtime();
+    const warnings = [];
+
+    const header = {
+      id: packetId,
       ms: new Date().getTime(),
-    }}
+    }
+
     const filters = [
-      ...(this.options.jsonFilters ?? []),
+      ...(this.options.server.jsonFilters ?? []),
       ...(options?.filters ?? []),
     ];
-    const buffer = Buffer.from(await new Blob([
-      JSON.stringify(header).slice(0, -1),
-      ',"payload": {',
-      ...lib.flattenBody(packet, filters),
-      '}}'
-    ]).arrayBuffer());
-    this.write(buffer);
+    const headPacket = JSON.stringify(header);
+    this.write('head', headPacket);
+    size += headPacket.length;
+    for (const [key, val] of lib.flatten(packet, filters)) {
+      fieldCnt += 1;
+      if (val.length > (this.options.server.highFieldSizeWarn as number)) {
+        warnings.push(`Long value length: ${key} / ${val.length}`);
+      }
+      this.write('body', `${packetId}:${key}:${val}`);
+      size += key.length;
+      size += val.length;
+      if (fieldCallback !== undefined) {
+        fieldCallback(key, val);
+      }
+    }
+    this.write('done', `${packetId}:${fieldCnt}`);
+    if (fieldCnt > (this.options.server.highFieldCountWarn as number)) {
+      warnings.push(`High field count: ${fieldCnt}`);
+    }
+    const us = hrtime(hrt);
+    return {
+      size, warnings,
+      us: us[0] * 1e9 + us[1],
+    };
   }
 
   /**
@@ -90,11 +106,10 @@ export class Server {
     });
   }
 
-
-  write(str: Buffer|string) {
+  write(event: string, str: Buffer|string) {
     this.responseId += 1;
     this.perListener(async r => {
-      r.write(`id: ${this.responseId}\nevent: packet\ndata: `)
+      r.write(`id: ${this.responseId}\nevent: ${event}\ndata: `)
       r.write(str);
       r.write('\n\n')
     });

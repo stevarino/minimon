@@ -21,16 +21,19 @@
 <div id="sidebar" class="collapsed" data-chosen="">
   <ul class="buttons">
     <!-- https://fonts.google.com/icons -->
-    <li class="material-symbols-outlined" title="Filters &amp; Groups">query_stats</li>
-    <li class="material-symbols-outlined" title="Tabular Data">table_view</li>
+    <li class="material-symbols-outlined" title="Filters &amp; Groups" data-panel="filterPanel">query_stats</li>
+    <li class="material-symbols-outlined" title="Tabular Data" data-callback="loadTable" data-panel="tablePanel">table_view</li>
     <li class="material-symbols-outlined" title="Download (Filtered)" data-callback="download">download</li>
     <!-- <li class="material-symbols-outlined" title="Settings">tune</li> -->
     <!-- <li class="material-symbols-outlined" title="Favorites">star</li> -->
   </ul>
   <ul class="buttons">
-    <li class="material-symbols-outlined" title="About">info</li>
+    <li class="material-symbols-outlined" title="About" data-panel="infoPanel">info</li>
   </ul>
-  <div id="s_query_stats">
+  <span class="tab_buttons buttons">
+    <button class="material-symbols-outlined close_panel" title="Hide Panel" data-callback='hideSidebar'>close</button>
+  </span>
+  <div id="filterPanel">
     <h1>Filters &amp; Groups</h1>
     <form id="filter_form">
       <div id="field_wrapper">
@@ -53,20 +56,14 @@
     <ul id="active_filters"></ul>
   </div>
 
-  <div id="s_table_view">
+  <div id="tablePanel">
+    <button title="Reload Table" class="material-symbols-outlined" data-callback="createTable">refresh</button>
     <h1>Tabular Data</h1>
-    <div class="row">
-      <div>
-        Raw Packet Limit: <select id="table_cnt">
-          <option value="10">10 Rows</option>
-          <option value="100">100 Rows</option>
-          <option value="0">All Data</option>
-        </select>
-      </div>
-      <div>
-        <button id="table_load"><span class="material-symbols-outlined">refresh</span></button>
-      </div>
-    </div>
+    <select id="table_cnt">
+      <option value="10">Limit to 10 Rows</option>
+      <option value="100">Limit to 100 Rows</option>
+      <option value="0">All Data</option>
+    </select>
     <table id="table_table"></table>
   </div>
 
@@ -77,11 +74,11 @@
     <h1>Favorites</h1>
     <p>Coming soon</p>
   </div> -->
-  <div id="s_download">
+  <div id="favoritesPanel">
     <h1>Favorites</h1>
     <p>Coming soon</p>
   </div>
-  <div id="s_info">
+  <div id="infoPanel">
     <h1>About</h1>
     <p><a href="https://github.com/stevarino/monilite">MoniLite</a>: A lightweight monitoring server for quick debugging.</p>
     <h1>Credits</h1>
@@ -98,11 +95,11 @@
 
 <dialog id="modal">
   <div>
-    <div>
-      <h1>Details</h1>
-      <button class="copy"><span class="material-symbols-outlined">content_copy</span></button>
-      <button class="close"><span class="material-symbols-outlined">close</span></button>
-    </div>
+    <h1>Details</h1>
+    <span class="tab_buttons buttons">
+      <button class="material-symbols-outlined" title="Copy" data-callback="dialogCopy">content_copy</button>
+      <button class="material-symbols-outlined" title="Close Popup" data-callback="dialogHide">close</button>
+    </span>
     <pre></pre>
   </div>
 </dialog>
