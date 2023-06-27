@@ -179,11 +179,12 @@ export class View {
     return packets;
   }
 
-  getTabularPackets(limit: number): Table {
-    if (this.getGroups().length === 0) {
-      return this.storage.tabulateUnaggregated(this.filters, limit);
-    }
+  getAggregateTable(): Table {
     return this.storage.tabulateAggregate(this.filters);
+  }
+
+  getPacketTable(limit: number): Table {
+    return this.storage.tabulateUnaggregated(this.filters, limit);
   }
 
   setOptions(options: FrontendOptions) {

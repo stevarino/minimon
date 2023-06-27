@@ -1,6 +1,6 @@
 
 import { DefaultMap } from "../../lib";
-import { Dataset, Packet, NULL } from "./lib";
+import { Dataset, Packet, NULL, ROOT } from "./lib";
 import { FilterItem, FilterSet, Grouping } from "./filters";
 import { FieldContainer } from './fieldContainer'
 import { buildFrontendOptions, FrontendOptions } from "../../options";
@@ -119,6 +119,13 @@ export class PacketStore {
     }
     const rows: string[][] = [];
     rowMap.forEach((size, key) => {
+      if (key === ROOT) {
+        rows.push([
+          String(size.cnt), 
+          String(size.size),
+        ]);
+        return;
+      }
       const entries: Grouping = JSON.parse(key);
       rows.push([
         String(size.cnt),

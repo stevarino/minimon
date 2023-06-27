@@ -22,7 +22,8 @@
   <ul class="buttons">
     <!-- https://fonts.google.com/icons -->
     <li class="material-symbols-outlined" title="Filters &amp; Groups" data-panel="filterPanel">query_stats</li>
-    <li class="material-symbols-outlined" title="Tabular Data" data-callback="loadTable" data-panel="tablePanel">table_view</li>
+    <li class="material-symbols-outlined" title="View Aggregate Data" data-callback="loadAggTable" data-panel="aggPanel">table_view</li>
+    <li class="material-symbols-outlined" title="View Packets" data-callback="loadPacketTable" data-panel="packetPanel">code</li>
     <li class="material-symbols-outlined" title="Download (Filtered)" data-callback="download">download</li>
     <!-- <li class="material-symbols-outlined" title="Settings">tune</li> -->
     <!-- <li class="material-symbols-outlined" title="Favorites">star</li> -->
@@ -56,15 +57,21 @@
     <ul id="active_filters"></ul>
   </div>
 
-  <div id="tablePanel">
-    <button title="Reload Table" class="material-symbols-outlined" data-callback="createTable">refresh</button>
-    <h1>Tabular Data</h1>
+  <div id="aggPanel" class="datatable">
+    <button title="Reload Table" class="material-symbols-outlined" data-callback="loadAggTable">refresh</button>
+    <h1>Aggregate Data</h1>
+    <table></table>
+  </div>
+
+  <div id="packetPanel" class="datatable">
+    <button title="Reload Table" class="material-symbols-outlined" data-callback="loadPacketTable">refresh</button>
+    <h1>Packets</h1>
     <select id="table_cnt">
       <option value="10">Limit to 10 Rows</option>
       <option value="100">Limit to 100 Rows</option>
       <option value="0">All Data</option>
     </select>
-    <table id="table_table"></table>
+    <table></table>
   </div>
 
   <!-- <div id="s_tune">

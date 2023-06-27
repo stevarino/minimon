@@ -313,6 +313,7 @@ type ElementAttributes = {
   style?: {[key: string]: string}
   onClick?: (e: MouseEvent)=>any,
 }
+
 export function htmlElement(tagName: string, attrs?: ElementAttributes, ...children: Node[]) {
   const el = document.createElement(tagName);
   for (const [attr, val] of Object.entries(attrs ?? {})) {

@@ -275,25 +275,25 @@ input[type=submit], button {
   background: mintcream;
 }
 
-#tablePanel #table_cnt{
+#table_cnt{
   width: 100%;
 }
 
-#tablePanel .row {
+.datatable > .row {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-gap: 1em;
 }
-#tablePanel .row button {
+.datatable > .row button {
   font-size: 0.66em;
 }
 
-#tablePanel table {
+.datatable > table {
   margin-top: 1em;
   width: 100%;
 }
 
-#tablePanel th {
+.datatable > table th {
   background: #f6f6ff;
   cursor: pointer;
 }
