@@ -45,7 +45,7 @@ function createTable() {
   }
   const cnt = querySelector<HTMLSelectElement>('#table_cnt');
   
-  if (window.VIEW.getGroups().length > 0) {
+  if (window.VIEW.getGroups().length === 0) {
     cnt.style.display = 'block';
   } else {
     cnt.style.display = 'none';
