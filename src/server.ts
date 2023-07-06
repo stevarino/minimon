@@ -26,7 +26,7 @@ export class Server {
     this.options = buildOptions(options ?? {});
 
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      console.log(req.url);
+      console.info(req.url);
       switch (req.url) {
         case '/packets':
           res.writeHead(200, {
@@ -42,7 +42,7 @@ export class Server {
       }
     });
     server.listen(this.options.server.port);
-    console.log(`Web server running on port ${this.options.server.port}`);
+    console.info(`Web server running on port ${this.options.server.port}`);
   }
 
   /** Converts a json document into a stremed event. */

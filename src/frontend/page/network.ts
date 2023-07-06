@@ -1,6 +1,7 @@
 import { querySelector, formatBytes } from '../../lib';
 import { Packet } from '../packets';
 import { FrontendOptions } from '../../options';
+import * as common from './common';
 import { DemoEventSource, demoEventSource, demoOptions, IS_DEMO } from './frontendDemo';
 
 /** packet samples used for rate calculations */
@@ -26,11 +27,13 @@ function scan(str: string, needle: string, start: number): [result: string, next
 }
 
 function setOptions(options: FrontendOptions) {
+  console.info('Initializing Options');
   window.OPTIONS = options;
   window.VIEW.setOptions(options);
   querySelector('#header h1').innerText = options.title;
   document.title = options.title;
   querySelector('#customInfo').innerHTML = options.about ?? '';
+  common.OPTIONS.emit(options);
 }
 
 /** Update rate displays based on data in sample datastructure */

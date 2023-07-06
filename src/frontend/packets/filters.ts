@@ -11,10 +11,12 @@
  *           - field
  */
 
-import { globToRegex, isEmptyObject } from "../../lib";
+import { DefaultMap, globToRegex, isEmptyObject } from "../../lib";
 import { Trie } from "./trie";
 import { Packet, ROOT, NULL } from "./lib"
 import { PacketStore } from './packetStore';
+import { State } from "../page/common";
+import { difference } from "../../setLib";
 
 
 /** Function signature for tests used internally in filters. */
@@ -69,10 +71,12 @@ export class Filter {
   id: number;
   type: FilterType;
   testValue: string | RegExp;
+  stringValue: string;
 
   constructor(type: FilterType, testValue: string) {
     this.id = Filter._id++;
     this.type = type;
+    this.stringValue = testValue;
     if (type instanceof REType) {
       this.testValue = new RegExp(testValue);
     } else {
@@ -95,6 +99,12 @@ export class FilterItem {
     if (key.indexOf('*') > -1) {
       this.regex = globToRegex(key, '.');
     }
+  }
+
+  toJSON() {
+    return this.filters.map(f => {
+      return { op: f.type.label, testValue: f.stringValue }
+    })
   }
 
   /** Determine if this item is safe to remove, and if so, clean up references. */
@@ -166,6 +176,18 @@ export class FilterSet {
   
   constructor(indexes: PacketStore) {
     this.packetStore = indexes;
+  }
+
+  toJSON() {
+    const obj: {[key: string]: {op: string, testValue: string}[]} = {};
+    this.items.forEach((fi, key) => {
+      obj[key] = [];
+      if (fi._isGrouped) {
+        obj[key].push({op: '*', testValue: ''});
+      }
+      obj[key].push(...fi.toJSON());
+    }); 
+    return obj;
   }
 
   getGroups(): FilterItem[] {
@@ -294,5 +316,79 @@ export class FilterSet {
     for (const item of this.items) {
       yield item;
     }
+  }
+
+  mergeFromState(state: State[]) {
+    const updates = new DefaultMap<string, Set<string>>(() => new Set()); 
+    const updateLookup = new Map<string, State>();
+    const newParams = new Set<string>();
+    state.forEach(s => {
+      const str = `${s.param} ${s.op} ${s.value}`;
+      updates.getOrCreate(s.param).value.add(str);
+      newParams.add(s.param);
+      updateLookup.set(str, s)
+    });
+
+    const toRemove: string[] = [];
+    this.items.forEach((item, key) => {
+      const update = updates.get(key);
+      if (update === undefined) {
+        // delete FilterItem
+        toRemove.push(key);
+      } else {
+        // merge FilterItem
+        const existing = new Set<string>();
+        const existingMap = new Map<string, Filter>();
+        item.filters.forEach(f => {
+          const str = `${key} ${f.type.label} ${f.testValue.toString()}`;
+          existing.add(str);
+          existingMap.set(str, f);
+        });
+        if (item.isGroup()) {
+          existing.add(`${key} * `);
+        }
+
+        // filters in update but not in current
+        difference(update, existing).forEach((update) => {
+          const state = updateLookup.get(update) as State;
+          if (state.op === '*') {
+            item.setGroup();
+          } else {
+            item.addFilter(new Filter(FilterType.get(state.op), state.value));
+          }
+        });
+        // filters in current but not in update
+        difference(existing, update).forEach((update) => {
+          if (update.endsWith(' * ')) {
+            item.unsetGroup();
+          } else {
+            const filter = existingMap.get(update);
+            if (filter === undefined) {
+              console.error("Unable to lookup filter:  ", update);
+              return;
+            }
+            item.removeFilter(filter.type, String(filter.testValue));
+          }
+        })
+      }
+    });
+
+    difference(newParams, new Set(this.items.keys())).forEach(item => {
+      // add new FilterItem
+      const fi = this.getOrCreateItem(item);
+      updates.get(item)?.forEach(update => {
+        const state = updateLookup.get(update);
+        if (state === undefined) {
+          console.error('Unable to find update: ', update);
+          return;
+        }
+        if (state.op === '*') {
+          fi.setGroup();
+        } else {
+          fi.addFilter(new Filter(FilterType.get(state.op), state.value));
+        }
+      });
+    });
+    toRemove.forEach(k => this.items.delete(k));
   }
 }

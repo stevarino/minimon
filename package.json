@@ -26,6 +26,7 @@
   "scripts": {
     "test": "tsc && ava",
     "demo": "tsc && node dist/scripts/demo.js",
+    "copy": "node dist/scripts/copyStatic.js",
     "build": "tsc && webpack --mode production && node dist/scripts/copyStatic.js",
     "prepublish": "npm run build",
     "patch": "npm version patch && npm publish",

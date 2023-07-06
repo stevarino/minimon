@@ -13,7 +13,7 @@ var root =path.resolve(__dirname, '..', '..');
 var input = path.resolve(root, 'static');
 var output = path.resolve(root, 'dist', 'static')
 fs.readdirSync(input).forEach(f => {
-  console.log('Copying ', f);
+  console.info('Copying ', f);
   fs.copyFileSync(path.resolve(input, f), path.resolve(output, f))
 })
 
@@ -22,7 +22,7 @@ for (const [name, src] of Object.entries(packages)) {
     if (fs.lstatSync(path.resolve(root, src, f)).isDirectory()) {
       return;
     }
-    console.log('Copying ', f);
+    console.info('Copying ', f);
     if (!fs.existsSync(path.resolve(output, name))) {
       fs.mkdirSync(path.resolve(output, name));
     }

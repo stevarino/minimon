@@ -1,48 +1,30 @@
 import { ROOT } from '../packets';
-import { rebuildFilterList } from './panelFilters';
-import { View, Dataset } from '../packets';
-import { EQUALS, Grouping, MATCHES } from '../packets/filters';
-import { htmlElement, htmlText, querySelector, regexEscape } from '../../lib';
+// import { rebuildFilterList } from './panelFilters';
+import { View } from '../packets';
+import { Grouping } from '../packets/filters';
+import { htmlElement, querySelector } from '../../lib';
+import * as common from './common';
+import { filtersFromArray, filtersFromGrouping, filtersFromParam, filterWidget } from "./filterWidget";
+
 
 declare global {
   var VIEW: View;
-  var CHART: any;
-  var CHART_DATA: Dataset[];
-  var CLICK_LOCK: boolean;
-  var HOVER_LOCK: boolean;
 }
 
-window.CHART_DATA = [];
-window.CLICK_LOCK = false;
-window.HOVER_LOCK = false;
+let CLICK_LOCK = false;
+let HOVER_LOCK = false;
 
-const legendParser = /(.*):\s+(\d+)\s*$/
-
-window.VIEW = new View(window.CHART_DATA, (min: number, max: number) => {
-  // @ts-ignore
-  const chart = window.CHART;
-  chart.options.scales.x.min = min;
-  chart.options.scales.x.max = max;
-  chart.update('none');
-});
-
-function applyDatasetFilter(e: MouseEvent) {
-  e.preventDefault();
-  const el = e.target as HTMLAnchorElement;
-  const filters = JSON.parse(el.dataset.filter as string);
-  window.VIEW.applyFilterSet(filters, el.dataset.remove_group);
-  rebuildFilterList();
-}
+const legendParser = /(.*):\s+(\d+)\s*$/;
 
 // @ts-ignore
-window.CHART = new Chart(querySelector('#chart'), {
+const CHART = new Chart(querySelector('#chart'), {
   type: 'line',
   options: {
     maintainAspectRatio: false,
     parsing: false,
     normalized: true,
     animation: false,
-    onClick: () => { window.CLICK_LOCK = !window.CLICK_LOCK; },
+    onClick: () => { CLICK_LOCK = !CLICK_LOCK; },
     interaction: {
       mode: 'nearest',
       intersect: false,
@@ -61,23 +43,33 @@ window.CHART = new Chart(querySelector('#chart'), {
       tooltip: {
         enabled: false,
         external: tooltip,
+      },
+      colors: {
+        // TODO: expand color options, themes, etc.
+        // https://www.chartjs.org/docs/latest/general/colors.html#dynamic-datasets-at-runtime
+        forceOverride: true
       }
     }
   },
   data: {
-    datasets: window.CHART_DATA,
+    labels: [],
+    datasets: [],
   },
 });
 
-function tooltipTitle(key: string, val: string, more: boolean=false) {
-  return `Filter for ${more ? '[ ' : ''}${key} == ${val}${more ? ', ... ]' : ''}`;
-}
+window.VIEW = new View(CHART.data, (min: number, max: number) => {
+  CHART.options.scales.x.min = min;
+  CHART.options.scales.x.max = max;
+  CHART.update();
+});
+
+common.STATE.addListener((s) => window.VIEW.mergeFilterState(s));
 
 // https://www.chartjs.org/docs/latest/configuration/tooltip.html#external-custom-tooltips
 function tooltip(context: any) {
   const tooltipEl = querySelector('#tooltip');
   const root = querySelector('#tooltip_content');
-  if (window.CLICK_LOCK || window.HOVER_LOCK) return;
+  if (CLICK_LOCK || HOVER_LOCK) return;
 
   // Hide if no tooltip
   const tooltipModel = context.tooltip;
@@ -104,15 +96,13 @@ function tooltip(context: any) {
     bodyLines.forEach(function (lines: string[], i: number) {
       const colors = tooltipModel.labelColors[i];
       lines.forEach((line: string) => {
-        const row = htmlElement('tr', {}, 
-          htmlElement('td', {
-            style: {
-              color: colors.backgroundColor,
-              borderColor: colors.borderColor,
-            },
-            innerText: '―――'
-          }),
-        );
+        const lineEl = htmlElement('span', {
+          innerHTML: `<svg height="1em" width="1em">
+                          <line x1="0" y1="50%" x2="100%" y2="50%"
+                           style="stroke:${colors.borderColor}; stroke-width: 3" />
+                        </svg>`,
+        });
+        const row = htmlElement('tr');
         rows.push(row);
         // really hope there are not multiple colons...
         const match = legendParser.exec(line);
@@ -123,91 +113,40 @@ function tooltip(context: any) {
         }
         const [_, labels, cnt] = match;
         if (labels === ROOT) {
-          row.appendChild(htmlElement('td', {innerText: `${ROOT}:`}));
-          row.appendChild(htmlElement('td', {innerText: cnt}));
+          row.append(
+            htmlElement('td', {}, lineEl),
+            htmlElement('td', {innerText: `${ROOT}:`}),
+            htmlElement('td', {innerText: cnt}));
           return;
         }
-        const label: string[] = [];
         const grouping: Grouping = JSON.parse(labels);
+        row.append(htmlElement('td', {},
+          filterWidget(lineEl, filtersFromGrouping(grouping))
+        ));
         for (const [searchTerm, fields] of Object.entries(grouping)) {
-          if (fields[searchTerm] !== undefined) {
-            // non-wildcard search - 1:1 searchterm to field
-            const data_filter = JSON.stringify([[searchTerm, EQUALS, fields[searchTerm]]]);
-            const title = tooltipTitle(searchTerm, fields[searchTerm]);
-            row.appendChild(htmlElement('td', {},
-              htmlElement('a', {
-                href: '#',
-                innerText: searchTerm,
-                dataset: {filter: data_filter, remove_group: searchTerm},
-                title: title,
-                onClick: applyDatasetFilter,
-              }),
-              htmlText(':')));
-            row.appendChild(htmlElement('td', {}, 
-              htmlElement('a', {
-                href: '#',
-                innerText: fields[searchTerm],
-                dataset: {filter: data_filter, remove_group: searchTerm},
-                title: title,
-                onClick: applyDatasetFilter,
-              })));
-            row.appendChild(htmlElement('td', {innerText: cnt}));
+          let displayValue: string = '';
+          const values = Object.values(fields);
+          if (values.length === 1) {
+            displayValue = values[0];
           } else {
-            // wildcard search - multiple fields
-            const entries = Object.entries(fields);
-            const escapedEntries = Array.from(new Set(entries.map(([_, v]) => v))).map(v => regexEscape(v)).join('|');
-            row.appendChild(htmlElement('td', {},  // wildcard search term
-              htmlElement('a', {
-                href: '#',
-                innerText: searchTerm,
-                dataset: {filter: JSON.stringify([[searchTerm, MATCHES, `^(${escapedEntries})$`]]), remove_group: searchTerm},
-                title: tooltipTitle(searchTerm, '[...]'),
-                onClick: applyDatasetFilter,
-              }),
-              htmlText(':')
-            ));
-            if (entries.length > 0) {
-              // has fields
-              row.appendChild(htmlElement('td', {}, // multiple values
-                htmlElement('a', {
-                  href: '#',
-                  innerText: '[...]',
-                  dataset: {remove_group: searchTerm, filter: JSON.stringify(
-                    entries.map(([k, v]) => [k, EQUALS, v])
-                  )},
-                  title: tooltipTitle(entries[0][0], entries[0][1], true),
-                  onClick: applyDatasetFilter,
-                })
-              ));
-            } else {
-              row.appendChild(htmlElement('td')); // no fields
+            let count = 0, i = 0;
+            for (i=0; i < values.length; i++) {
+              count += values[i].length;
+              if (i != 0 && count > 80) break;
             }
-            row.appendChild(htmlElement('td', {innerText: cnt}));
-            Object.entries(fields).forEach(([field, value]) => {
-              // multiple field rows per search term row
-              let row = htmlElement('tr');
-              rows.push(row);
-              row.appendChild(htmlElement('td'));  // no line icon
-              row.appendChild(htmlElement('td', {},
-                htmlElement('a', {
-                  href: '#',
-                  innerText: field,
-                  dataset: {filter: JSON.stringify([[field, EQUALS, value]]), remove_group: searchTerm},
-                  title: tooltipTitle(field, value),
-                  onClick: applyDatasetFilter,
-                }),
-                htmlText(':')));
-              row.appendChild(htmlElement('td', {}, 
-                htmlElement('a', {
-                  href: '#',
-                  innerText: value,
-                  dataset: {filter: JSON.stringify([[searchTerm, EQUALS, value]]), remove_group: searchTerm},
-                  title: tooltipTitle(searchTerm, value),
-                  onClick: applyDatasetFilter,
-                })));
-              row.appendChild(htmlElement('td'));  // no count
-            });
+            if (i === values.length) {
+              displayValue = `[ ${values.join(', ')} ]`;
+            } else {
+              displayValue = `[ ${ values.slice(0, i).join(', ') }, ... ]`
+            }
           }
+          row.appendChild(htmlElement('td', {},
+            filterWidget(`${searchTerm} : ${displayValue}`, filtersFromParam(searchTerm, fields))
+          ));
+          // const td = htmlElement('td', {'innerText': `${searchTerm} : ${displayValue}`});
+          // row.appendChild(td);
+          // td.append(
+          //   paramFilterDrowpdown(searchTerm,  fields));
         }
       });
     });
@@ -229,9 +168,9 @@ function tooltip(context: any) {
 }
 
 querySelector('#tooltip_content').addEventListener('mouseenter', (e) => {
-  window.HOVER_LOCK = true;
+  HOVER_LOCK = true;
 });
 
 querySelector('#tooltip_content').addEventListener('mouseleave', (e) => {
-  window.HOVER_LOCK = false;
+  HOVER_LOCK = false;
 });

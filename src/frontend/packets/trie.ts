@@ -42,9 +42,9 @@ export class Trie<T> {
   /** Recursively find a set of packet id's (NOTE: path is reversed) */
   _find(path: string[], results: Trie<T>[]): void {
     if (path.length === 0) {
-      if (this.fields.size > 0 || this.values.size > 0) {
+      // if (this.fields.size > 0 || this.values.size > 0) {
         results.push(this);
-      }
+      // }  
       return;
     }
     let next = path[path.length-1];
@@ -60,12 +60,8 @@ export class Trie<T> {
         trie._find(rest, results);
       });
     }
-    let trie = this.children.get(next);
-    if (trie === undefined) {
-      return;
-    }
-    trie._find(rest, results);
-    }
+    this.children.get(next)?._find(rest, results);
+  }
 
   /** Updates an array with all children recursively */
   flatten(tries: Trie<T>[]) {

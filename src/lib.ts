@@ -312,6 +312,8 @@ type ElementAttributes = {
   dataset?: {[key: string]: string}
   style?: {[key: string]: string}
   onClick?: (e: MouseEvent)=>any,
+  onMouseEnter?: (e: MouseEvent) => any,
+  onMouseLeave?: (e: MouseEvent) => any,
 }
 
 export function htmlElement(tagName: string, attrs?: ElementAttributes, ...children: Node[]) {
@@ -332,6 +334,8 @@ export function htmlElement(tagName: string, attrs?: ElementAttributes, ...child
         }
         break;
       case 'onClick': el.addEventListener('click', val as (e: Event) => any); break;
+      case 'onMouseEnter': el.addEventListener('mouseenter', val as (e: Event) => any); break;
+      case 'onMouseLeave': el.addEventListener('mouseleave', val as (e: Event) => any); break;
       default: el.setAttribute(attr, val as string);
     }
   }
@@ -362,7 +366,7 @@ export function runDemo(publisher: (packet: object) => void) {
       let timeout = this.fast;
       if (x > 0.5) timeout = this.slow;
       const dice: string[] = [];
-      for (let i=0; i<4*Math.random(); i++) {
+      for (let i=0; i<2*Math.random(); i++) {
         dice.push(String(Math.floor(Math.random() * 6 + 1)))
       }
       for (let index=0; index<this.count; index++) {

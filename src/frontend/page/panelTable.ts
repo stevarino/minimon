@@ -1,22 +1,26 @@
 import * as packets from "../packets"
-import { inflateObject, formatBytes, querySelector, htmlElement } from '../../lib'
+import { inflateObject, formatBytes, querySelector, htmlElement, DefaultMap } from '../../lib'
 import { buttonCallbacks } from './panels';
+import { filtersFromField, filtersFromGrouping, filterWidget } from "./filterWidget";
+import { STATE } from "./common";
 
 declare global {
   /** Packet references to prevent garbage collection */
   var TABLE: packets.Table;
 }
 
-Object.assign(buttonCallbacks, {
-  loadAggTable: function() {
-    loadTable('#aggPanel table', window.VIEW.getAggregateTable());
-  },
-  loadPacketTable: function() {
-    const limit = querySelector<HTMLSelectElement>('#table_cnt').value;
-    window.TABLE = window.VIEW.getPacketTable(Number(limit));
+STATE.addListener(() => {
+  Object.entries({
+    '#aggPanel': loadAggTable,
+    '#packetPanel': loadPacketTable,
+  }).forEach(([sel, callback]) => {
+    if (querySelector(sel).style.display === 'block') callback();
+  });
+});
 
-    loadTable('#packetPanel table', window.TABLE);
-  },
+Object.assign(buttonCallbacks, {
+  loadAggTable,
+  loadPacketTable,
   dialogHide: function() {
     querySelector<HTMLDialogElement>('#modal').close();
     querySelector('#modal pre').innerText = '';
@@ -28,12 +32,23 @@ Object.assign(buttonCallbacks, {
   }
 });
 
+function loadAggTable() {
+  loadTable('#aggPanel table', window.VIEW.getAggregateTable());
+}
+
+function loadPacketTable() {
+  const limit = querySelector<HTMLSelectElement>('#table_cnt').value;
+  window.TABLE = window.VIEW.getPacketTable(Number(limit));
+
+  loadTable('#packetPanel table', window.TABLE);
+}
+
 /** Known column headings and associated help text */
-const headerTitles: {[key: string]: string} = {
-  '_id': 'Unique Packet Identifier',
-  '_sz': 'Approxmate Packet Size',
-  '_cnt': 'Count of packets',
-};
+const headerTitles = new Map<string, string>([
+  [packets.TABLE_COLUMNS.ID, 'Unique Packet Identifier'],
+  [packets.TABLE_COLUMNS.SIZE, 'Approxmate Packet Size'],
+  [packets.TABLE_COLUMNS.COUNT, 'Count of packets']
+]);
 
 /** Get the "value" of a table cell for sorting purposes */
 function getCellValue(cell: Element, idx: number) {
@@ -56,18 +71,34 @@ function comparer(idx: number, asc: boolean) {
 /** Given a selector and some data, build an HTML table */
 function loadTable(selector: string, data: packets.Table) {
   const table = querySelector(selector);
+  const headerMap = new Map<string, string>();
+  table.querySelectorAll('th').forEach(th => {
+    if (th.dataset.asc !== undefined) {
+      headerMap.set(th.innerText, th.dataset.asc);
+    }
+  });
   table.innerHTML = '';
   const thead_tr = document.createElement('tr');
+  /** Field to params[] */
+  const fieldLookup = new DefaultMap<string, string[]>(() => []);
+  window.VIEW.getGroupMapping().forEach((fields, param) => {
+    fields.forEach(field => fieldLookup.getOrCreate(field).value.push(param))
+  });
   table.append(thead_tr);
 
   data.headers.forEach(h => {
     thead_tr.append(
       htmlElement('th', {
         innerText: h,
-        title: headerTitles[h],
+        title: headerTitles.get(h),
         onClick: (e) => {
           const th = e.target as HTMLElement;
           const table = th.closest('table');
+          table?.querySelectorAll('th').forEach(th => {
+            if (th.innerText !== h) {
+              delete th.dataset['asc'];
+            }
+          });
           if (table === null) {
             console.error('Unable to locate nearest table')
             return;
@@ -87,11 +118,24 @@ function loadTable(selector: string, data: packets.Table) {
 
   data.rows.forEach(row => {
     const tr = document.createElement('tr');
-    row.forEach((cell, i) => {
+    /** param => field => value */
+    const grouping: {[param: string]: {[field: string]: string}} = {};
+    row.forEach((value, i) => {
+      const field = data.headers[i];
+      if (packets.KNOWN_COLUMNS.indexOf(field) !== -1) {
+        return;
+      }
+      fieldLookup.get(field)?.forEach(param => {
+        if (grouping[param] === undefined) grouping[param] = {};
+        grouping[param][field] = value;
+      });
+    });
+    row.forEach((value, i) => {
       const td = document.createElement('td');
-      if (data.headers[i] === '_id') {
+      const field = data.headers[i];
+      if (field === packets.TABLE_COLUMNS.ID) {
         const a = htmlElement('a', {
-          href: '#', innerText: cell, dataset: {id: cell},
+          href: '#', innerText: value, dataset: {id: value},
           onClick: (e) => {
             e.preventDefault();
             const packetId = Number((e.target as HTMLElement).dataset.id ?? '-1');
@@ -107,11 +151,15 @@ function loadTable(selector: string, data: packets.Table) {
           }
         });
         td.appendChild(a);
-      } else if (data.headers[i] === '_sz') {
-        td.innerText = formatBytes(Number(cell));
-        td.dataset.val = cell;
+      } else if (field === packets.TABLE_COLUMNS.SIZE) {
+        td.innerText = formatBytes(Number(value));
+        td.dataset.val = value;
+      } else if (field === packets.TABLE_COLUMNS.COUNT) {
+        td.append(filterWidget(value, filtersFromGrouping(grouping)));
       } else {
-        td.innerText = cell;
+        td.append(
+          filterWidget(value, filtersFromField(field, value, fieldLookup.get(field) ?? [])),
+        );
       }
       tr.appendChild(td);
     });

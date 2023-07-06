@@ -1,24 +1,30 @@
 
 import { Dataset, Packet } from "./lib";
-import { EQUALS, FilterSet, FilterType, Grouping } from "./filters";
+import { FilterSet, FilterType } from "./filters";
 import { PacketStore, Table } from "./packetStore";
 import { FrontendOptions, buildFrontendOptions } from '../../options';
+import { State } from "../page/common";
+
+interface CHART_DATA {
+  datasets: Dataset[], 
+  labels: string[]
+}
 
 /** Set of active filters and groups. */
 export class View {
   /** List of current filters (including groups) */
   filters: FilterSet;
   storage: PacketStore;
-  updateCallback: ()=> void;
+  updateCallback: () => void;
   lastRefresh = 0;
   refreshInterval = 300;
 
   // the current view - mapping of time => (datafield => total)
-  chartData: Dataset[];
+  chartData: CHART_DATA;
   _currentTime: number = 0;
   options: FrontendOptions;
 
-  constructor(chartData: Dataset[], updateCallback: (min: number, max: number)=> void, options?: FrontendOptions) {
+  constructor(chartData: CHART_DATA, updateCallback: (min: number, max: number) => void, options?: FrontendOptions) {
     this.chartData = chartData;
 
     this.options = options ?? buildFrontendOptions({});
@@ -32,11 +38,12 @@ export class View {
 
   /** Generate a new series of datasets and merge it with the graph datasets */
   reindex() {
-    const newData = this.storage.render(this.filters);
-    this.chartData.length = 0;
-    for (const dataset of newData) {
-      this.chartData.push(dataset);
-    }
+    this.chartData.datasets.length = 0;
+    this.chartData.labels.length = 0;
+    const newData = this.storage.render(this.filters).forEach(ds => {
+      this.chartData.datasets.push(ds);
+      this.chartData.labels.push(ds.label);
+    });
     this.updateCallback();
   }
 
@@ -53,7 +60,7 @@ export class View {
   }
 
   /** Adds a particular filter, initiated by user.  */
-  addFilter(key: string, type: FilterType|string, value: string) {
+  addFilter(key: string, type: FilterType | string, value: string) {
     if (typeof type === 'string') {
       const lookup = FilterType.get(type);
       if (lookup === undefined) {
@@ -67,7 +74,7 @@ export class View {
   }
 
   /** Removes a particular filter, initiated by user. */
-  removeFilter(key: string, type: FilterType|string, value: string) {
+  removeFilter(key: string, type: FilterType | string, value: string) {
     if (typeof type === 'string') {
       const lookup = FilterType.get(type);
       if (lookup === undefined) {
@@ -80,25 +87,10 @@ export class View {
     this.reindex();
   }
 
-  /**
-   * Sets a series of filters, based on a graph tooltip link.
-   * 
-   * @param filter URLSearchParams encoded filters 'foo=bar&baz=1'
-   */
-  applyFilterSet(filters: [string, string, string][], removeGroup?: string) {
-      filters.forEach(([key, filter, val]) => {
-      this.filters.addFilter(key, FilterType.get(filter), val);
-      if (removeGroup !== undefined) {
-        this.filters.removeGroup(removeGroup);
-      }
-    });
-    this.reindex();
-  }
-
   /** Garbage collect chartData (and then reaquest storage to do so also) */
   trim(now: number) {
     const ms = now - this.options.duration - 2 * this.options._msPerBucket;
-    for (const dataset of this.chartData) {
+    for (const dataset of this.chartData.datasets) {
       let i = 0;
       for (const pt of dataset.data) {
         i += 1;
@@ -110,7 +102,7 @@ export class View {
   }
 
   /** Adds a packet to both index and current view. */
-  addPacket(packet: Packet, now: number|undefined=undefined) {
+  addPacket(packet: Packet, now: number | undefined = undefined) {
     if (now === undefined) now = new Date().getTime();
     this.storage.addPacket(packet, this.filters);
     const bucket = this.storage.bucket(packet.header.ms);
@@ -130,29 +122,36 @@ export class View {
 
     const label = this.filters.getPacketGroupingString(packet);
     let found = false;
-    for (const dataset of this.chartData) {
+    for (const dataset of this.chartData.datasets) {
       if (dataset.label == label) {
         found = true;
-        if (dataset.data.length > 0 && dataset.data[dataset.data.length-1].x == bucket) {
-          dataset.data[dataset.data.length-1].y += 1;
+        if (dataset.data.length > 0 && dataset.data[dataset.data.length - 1].x == bucket) {
+          dataset.data[dataset.data.length - 1].y += 1;
         } else {
-          dataset.data.push({x: bucket, y: 1});
+          dataset.data.push({ x: bucket, y: 1 });
         }
         break;
       }
     }
 
     if (found === false) {
-      this.chartData.push({ label, data: [{x: bucket, y: 1}], })
+      this.chartData.datasets.push({ label, data: [{ x: bucket, y: 1 }], });
+      this.chartData.labels.push(label);
+      this.refresh(now);
+    } else {
+      this.maybeRefresh(now);
     }
-    this.maybeRefresh(now);
+  }
+
+  refresh(now: number) {
+    this.lastRefresh = now;
+    this.updateCallback();
   }
 
   /** Send an update to the graph if its been long enough. */
   maybeRefresh(now: number) {
     if (now - this.lastRefresh > this.refreshInterval) {
-      this.lastRefresh = now;
-      this.updateCallback();
+      this.refresh(now);
     }
   }
 
@@ -165,11 +164,17 @@ export class View {
     return [...this.filters.getGroups().map(item => item.searchParam)];
   }
 
+  getGroupMapping() {
+    return new Map(this.filters.getGroups().map(item => {
+      return [item.searchParam, [...item.getFields()]]
+    }));
+  }
+
   getFilterItems() {
     return this.filters.getItems();
   }
 
-  getPackets()  {
+  getPackets() {
     const packets = [];
     for (const packet of this.storage.packets) {
       if (!this.filters.isFiltered(packet)) {
@@ -190,5 +195,10 @@ export class View {
   setOptions(options: FrontendOptions) {
     this.options = options;
     this.storage.updateOptions(options);
+  }
+
+  mergeFilterState(state: State[]) {
+    this.filters.mergeFromState(state);
+    this.reindex();
   }
 }

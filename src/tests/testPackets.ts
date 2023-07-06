@@ -1,6 +1,6 @@
 import test from 'ava';
 import * as packets from "../frontend/packets";
-import { buildFrontendOptions } from '../options';
+import { buildFrontendOptions, FrontendOptions } from '../options';
 
 let _testPacketId = 0;
 function getTestPacket(
@@ -18,6 +18,13 @@ function getTestPacket(
   };
   Object.assign(packet.header, header ?? {});
   return packet;
+}
+
+function getView(dataset: packets.Dataset[], callback?: any, options?: FrontendOptions) {
+  return new packets.View(
+    { datasets: dataset, labels: [] },
+    callback ?? (() => {}),
+    options);
 }
 
 // https://www.compart.com/en/unicode/U+2400
@@ -92,7 +99,7 @@ test('IndexFilterNotEqual', t => {
 
 test('ViewPacket', t => {
   const dataset: packets.Dataset[] = [];
-  const view = new packets.View(dataset, () => {});
+  const view = getView(dataset);
   view.addPacket(getTestPacket({}, {}), 1);
   t.is(dataset.length, 1);
   view.addPacket(getTestPacket({}, { _dir: 'awesome'}), 1);
@@ -101,7 +108,7 @@ test('ViewPacket', t => {
 
 test('ViewGroup', t => {
   const dataset: packets.Dataset[] = [];
-  const view = new packets.View(dataset, () => {});
+  const view = getView(dataset);
   view.addPacket(getTestPacket({}, { foo: 'bar'}), 1);
   view.addPacket(getTestPacket({}, { foo: 'baz'}), 1);
   t.is(dataset.length, 1, JSON.stringify(dataset));
@@ -117,7 +124,7 @@ test('ViewGroup', t => {
 
 test('ViewManyGroups', t => {
   const dataset: packets.Dataset[] = [];
-  const view = new packets.View(dataset, ()=>{});
+  const view = getView(dataset);
   view.addPacket(getTestPacket({}, { foo: 'a',}));
   view.addPacket(getTestPacket({}, { foo: 'b', bar: 'c',}));
   view.addPacket(getTestPacket({}, { foo: 'a', bar: 'a',}));
@@ -139,7 +146,7 @@ test('ViewManyGroups', t => {
 
 test('ViewExpiry', t => {
   const dataset: packets.Dataset[] = [];
-  const view = new packets.View(dataset, ()=>{}, buildFrontendOptions({duration: 60_000}));
+  const view = getView(dataset, () => {}, buildFrontendOptions({duration: 60_000}));
   for (let i=0; i<10; i++) {
     view.addPacket(getTestPacket({ms: i * 1000}, {}), 1000);
   }
@@ -152,7 +159,7 @@ test('ViewExpiry', t => {
 
 test('ViewFields', t => {
   const dataset: packets.Dataset[] = [];
-  const view = new packets.View(dataset, ()=>{});
+  const view = getView(dataset);
   view.addPacket(getTestPacket({}, {foo: 'a', bar: 'b'}));
   let fields = new Set(view.getFields());
   t.is(fields.size, 2);

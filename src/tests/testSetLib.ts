@@ -32,8 +32,12 @@ test('intersectionUpdate', t => {
 test('difference', t => {
   const a = new Set([1,2,3]);
   const b = new Set([1,2,5,6]);
-  const c = setLib.difference(a,b)
-  t.deepEqual(c, new Set([3]))
+  t.deepEqual(
+    setLib.difference(a,b),
+    new Set([3]))
+  t.deepEqual(
+    setLib.difference(b,a),
+    new Set([5,6]))
 });
 
 test('differenceUpdate', t => {

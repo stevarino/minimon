@@ -11,10 +11,15 @@ export interface Table {
   packets: Map<number, Packet>;
 }
 
+export enum TABLE_COLUMNS {
+  ID = 'id',
+  COUNT = '_cnt',
+  SIZE = '_sz',
+};
+export const KNOWN_COLUMNS = Object.values(TABLE_COLUMNS).map(c => String(c));
+
 /**
- * Map of packet keys to ValueIndexes (packet values => packet ids).
- * 
- * Intended as the primary datastore.
+ * Interface for packet data, provides bulk rendering and management functions.
  */
 export class PacketStore {
   packets: Packet[] = [];
@@ -101,7 +106,7 @@ export class PacketStore {
     for (const [_, item] of filters.getItems()) {
       fields.push(...item.getFields());
     }
-    const headers = ['_cnt', '_sz', ...fields];
+    const headers = [TABLE_COLUMNS.COUNT, TABLE_COLUMNS.SIZE, ...fields];
     const packets = new Map<number, Packet>();
 
     /** packet-grouping to packet count and size (each grouping is one row) */
@@ -156,7 +161,7 @@ export class PacketStore {
     for (const [_, item] of filters.getItems()) {
       fields.push(...item.getFields());
     }
-    const headers = ['_id', '_sz', ...fields];
+    const headers = [TABLE_COLUMNS.ID, TABLE_COLUMNS.SIZE, ...fields];
     const rows: string[][] = [];
     const packets = new Map<number, Packet>();
     if (limit === 0) {

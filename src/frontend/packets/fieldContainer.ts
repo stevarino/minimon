@@ -4,7 +4,7 @@
 import { Packet } from './lib';
 import { FilterItem, FilterSet } from './filters';
 import { FrontendOptions } from '../../options';
-import { TrieRoot } from './trie';
+import { TrieRoot,Trie } from './trie';
 
 /** Contains a mapping from fields to packets within a Trie */
 export class FieldContainer extends TrieRoot<number> {
@@ -17,8 +17,18 @@ export class FieldContainer extends TrieRoot<number> {
 
   /** On a new trie node creation, test if it matches a known filter */
   linkFieldToFilter(tempRoot: TrieRoot<number>, filters: FilterSet) {
+    const fields = _flatten([], tempRoot);
+    function _flatten(list: string[], item: Trie<number>) {
+      if (item.path !== undefined) {
+        list.push(item.path);
+      }
+      item.children.forEach(c => _flatten(list, c));
+      return list;
+    }
     for (const [searchTerm, item] of filters.getItems()) {
-      tempRoot.find(searchTerm).forEach(trie => item.addField(trie));
+      tempRoot.find(searchTerm).forEach(trie => {
+        item.addField(trie);
+      });
     }
   }
 

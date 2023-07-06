@@ -1,5 +1,7 @@
 import * as packets from "../packets"
 import { querySelector, htmlText, htmlElement } from "../..//lib"
+import { changeState } from "./state";
+import * as common from './common';
 
 function fieldAutocomplete() {
   querySelector('#field_wrapper').innerHTML = '<div id="field_placeholder"></div>';
@@ -29,12 +31,18 @@ function fieldAutocomplete() {
 querySelector('#filter_form').addEventListener('submit', e=> {
   e.preventDefault();
   const field = querySelector<HTMLInputElement>('#field');
+  if (field.value === '') {
+    console.info('No field specified');
+    return;
+  }
   if ((e.submitter as HTMLButtonElement).value === 'Group By') {
-    window.VIEW.addGroup(field.value);
+    changeState([new common.State(field.value, '*', '')], []);
   } else {
-    const filter = querySelector<HTMLSelectElement>('#filter');
-    const value = querySelector<HTMLInputElement>('#value');
-    window.VIEW.addFilter(field.value, filter.value, value.value);
+    changeState([new common.State(
+      field.value,
+      querySelector<HTMLSelectElement>('#filter').value,
+      querySelector<HTMLInputElement>('#value').value,
+    )], []);
   }
   resetFilterForm();
 });
@@ -44,7 +52,6 @@ function resetFilterForm() {
   filter.value = (filter.children[0] as HTMLOptionElement).value;
   querySelector<HTMLInputElement>('#value').value = '';
   fieldAutocomplete();
-  rebuildFilterList();
 }
 
 function createFilterListItem(ul: HTMLUListElement, field: string) {
@@ -56,63 +63,70 @@ function createFilterListItem(ul: HTMLUListElement, field: string) {
   return li;
 }
 
-export function rebuildFilterList() {
+common.STATE.addListener((state) => {
   const ul = querySelector<HTMLUListElement>('#active_filters') as HTMLUListElement;
   Array.from(ul.childNodes).forEach(n => ul.removeChild(n));
-  for (const [param, item] of window.VIEW.getFilterItems()) {
-    if (item.isGroup()) {
-      const li = createFilterListItem(ul, param);
-
-      li.prepend(
-        htmlElement('span', { innerText: 'GROUP BY', classList: ['isFilter'] }),
-        htmlText(' '),
-      );
-
-      li.append(htmlElement('button', {
-        innerText: 'close',
-        classList: ['material-symbols-outlined'],
-        dataset: {field: param},
-        onClick: e => {
-          const btn = e.target as HTMLButtonElement;
-          window.VIEW.removeGroup(btn.dataset.field as string);
-          rebuildFilterList();
-        },
-      }));
+  state.forEach(s => {
+    if (s.op === '*') {
+      addGroupItem(ul, s.param);
+    } else {
+      addFilterItem(ul, s.param, s.op, s.value);
     }
+  });
+})
 
-    for (const filter of item.filters) {
-      const li = createFilterListItem(ul, param);
-      li.append(
-        htmlElement('span', {
-          classList: ['isfilter'],
-          innerText: filter.type.label,
-        }),
-        htmlText(' '),
-        htmlElement('span', {
-          classList: ['isvalue'],
-          innerText: String(filter.testValue),
-        }),
-        htmlText(' '),
-        htmlElement('button', {
-          innerText: 'close',
-          classList: ['material-symbols-outlined'],
-          dataset: {
-            field: param,
-            filter: filter.type.label,
-            value: String(filter.testValue),
-          },
-          onClick: e => {
-            const btn = e.target as HTMLButtonElement;
-            window.VIEW.removeFilter(
-              btn.dataset.field as string,
-              btn.dataset.filter as string,
-              btn.dataset.value as string);
-            rebuildFilterList();
-          },
-        })
-      );
-    }
-  }
+function addGroupItem(ul: HTMLUListElement, param: string) {
+  const li = createFilterListItem(ul, param);
+
+  li.prepend(
+    htmlElement('span', { innerText: 'GROUP BY', classList: ['isFilter'] }),
+    htmlText(' '),
+  );
+
+  li.append(htmlElement('button', {
+    innerText: 'close',
+    classList: ['material-symbols-outlined'],
+    dataset: {field: param},
+    onClick: e => {
+      const btn = e.target as HTMLButtonElement;
+      changeState([], [new common.State(btn.dataset.field as string, '*', '')]);
+      // window.VIEW.removeGroup(btn.dataset.field as string);
+      // rebuildFilterList();
+    },
+  }));
+}
+
+function addFilterItem(ul: HTMLUListElement, param: string, op: string, value: string) {
+  const li = createFilterListItem(ul, param);
+  li.append(
+    htmlElement('span', {
+      classList: ['isfilter'],
+      innerText: op,
+    }),
+    htmlText(' '),
+    htmlElement('span', {
+      classList: ['isvalue'],
+      innerText: value,
+    }),
+    htmlText(' '),
+    htmlElement('button', {
+      innerText: 'close',
+      classList: ['material-symbols-outlined'],
+      dataset: {
+        field: param,
+        filter: op,
+        value: value,
+      },
+      onClick: e => {
+        const btn = e.target as HTMLButtonElement;
+        changeState([], [new common.State(
+          btn.dataset.field as string,
+          btn.dataset.filter as string,
+          btn.dataset.value as string,
+        )]);
+      },
+    })
+  );
 }
 
 packets.FilterType.forEach(filter => {
