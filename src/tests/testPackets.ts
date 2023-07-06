@@ -1,12 +1,12 @@
 import test from 'ava';
-import * as packets from "../frontend/packets";
+import * as packets from '../frontend/packets';
 import { buildFrontendOptions, FrontendOptions } from '../options';
 
 let _testPacketId = 0;
 function getTestPacket(
-      header: {id?: number, ms?: number, size?: number}, 
-      payload: {[key: string]: string}
-    ): packets.Packet {
+  header: {id?: number, ms?: number, size?: number}, 
+  payload: {[key: string]: string}
+): packets.Packet {
   _testPacketId += 1;
   const payloadObj: {[k: string]: packets.PacketField} = {};
   Object.entries(payload).forEach(([k, v]) => {
@@ -38,7 +38,7 @@ test('IndexRender', t => {
   const store = new packets.PacketStore();
   const filters = new packets.FilterSet(store);
   store.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
-  let view = store.render();
+  const view = store.render();
   t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 1}]}]);
 });
 
@@ -68,14 +68,14 @@ test('IndexMultiGroups', t => {
   const view = index.render(filters);
   t.deepEqual(view.length, 3);
   const expectedLabels = [
-    {foo: {foo: "a"}, bar: {bar: packets.NULL}},
-    {foo: {foo: "b"}, bar: {bar: "c"}},
-    {foo: {foo: "a"}, bar: {bar: "a"}},
-  ]
+    {foo: {foo: 'a'}, bar: {bar: packets.NULL}},
+    {foo: {foo: 'b'}, bar: {bar: 'c'}},
+    {foo: {foo: 'a'}, bar: {bar: 'a'}},
+  ];
   expectedLabels.forEach(label => {
     t.assert(
       view.some((r) => r.label == JSON.stringify(label) && r.data[0].y == 1),
-      `Expected label "${label}", received ${view.map(r => r.label)}`)
+      `Expected label "${label}", received ${view.map(r => r.label)}`);
   });
 });
 
@@ -86,7 +86,7 @@ test('IndexFilterEqual', t => {
   index.addPacket(getTestPacket({}, { foo: 'baz',}), filters);
   index.addPacket(getTestPacket({}, { foo: 'bar',}), filters);
   filters.addFilter('foo', packets.FilterType.get('=='), 'bar');
-  let view = index.render(filters);
+  const view = index.render(filters);
   t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 2}]}]);
 });
 
@@ -97,7 +97,7 @@ test('IndexFilterNotEqual', t => {
   index.addPacket(getTestPacket({}, { foo: 'baz',}), filters);
   index.addPacket(getTestPacket({}, { foo: 'bar',}), filters);
   filters.addFilter('foo', packets.FilterType.get('!='), 'bar');
-  let view = index.render(filters);
+  const view = index.render(filters);
   t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 1}]}]);
 });
 
@@ -137,14 +137,14 @@ test('ViewManyGroups', t => {
   t.deepEqual(dataset.length, 3);
   
   const expectedLabels = [
-    {foo: {foo: "a"}, bar: {bar: packets.NULL}},
-    {foo: {foo: "b"}, bar: {bar: "c"}},
-    {foo: {foo: "a"}, bar: {bar: "a"}},
-  ]
+    {foo: {foo: 'a'}, bar: {bar: packets.NULL}},
+    {foo: {foo: 'b'}, bar: {bar: 'c'}},
+    {foo: {foo: 'a'}, bar: {bar: 'a'}},
+  ];
   expectedLabels.forEach(label => {
     t.assert(
       dataset.some((r) => r.label == JSON.stringify(label) && r.data[0].y == 1),
-      `Expected label "${label}", received ${dataset.map(r => r.label)}`)
+      `Expected label "${label}", received ${dataset.map(r => r.label)}`);
   });
 });
 
@@ -172,4 +172,4 @@ test('ViewFields', t => {
   fields = new Set(view.getFields());
   t.is(fields.size, 3);
   t.true(fields.has('baz'));
-})
+});

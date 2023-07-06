@@ -7,7 +7,7 @@ export class State {
   param: string;
   op: string;
   value: string;
-  passedValue: string|string[]
+  passedValue: string|string[];
 
   constructor(param: string, op: string, value: string|string[]) {
     this.param = param;
@@ -57,7 +57,7 @@ function emitterSetup<T>(signal: string) {
     addListener: (callback: (data: T) => void) => {
       emitter.addListener(signal, callback);
     }
-  }
+  };
 }
 
 export const STATE = emitterSetup<State[]>('state');

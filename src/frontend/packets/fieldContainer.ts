@@ -36,7 +36,7 @@ export class FieldContainer extends TrieRoot<number> {
   addPacket(packet: Packet, filters: FilterSet) {
     Object.keys(packet.payload).forEach(field => {
       const trie = this.addNode(field, (tempRoot) => {
-        this.linkFieldToFilter(tempRoot, filters)
+        this.linkFieldToFilter(tempRoot, filters);
       });
       trie.values.add(packet.header.id);
     });

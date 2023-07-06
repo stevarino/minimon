@@ -3,7 +3,7 @@ export class DefaultMap<K, V> extends Map<K,V> {
   callback: (arg?: any) => V;
 
   constructor(callback: (arg?: any) => V, iterable?: Iterable<readonly [K, V]> | null | undefined) {
-    super(iterable)
+    super(iterable);
     this.callback = callback;
   }
 
@@ -24,7 +24,7 @@ export class DefaultWeakMap<K extends object, V> extends WeakMap<K,V> {
   callback: (arg?: any) => V;
 
   constructor(callback: (arg?: any) => V, entries?: readonly [K, V][] | null | undefined) {
-    super(entries)
+    super(entries);
     this.callback = callback;
   }
 
@@ -42,7 +42,7 @@ export class DefaultWeakMap<K extends object, V> extends WeakMap<K,V> {
 
 /** An object field's key, represented by parts. */
 class Key {
-  parts: Array<string>
+  parts: Array<string>;
   constructor(...parts: Array<string>) {
     this.parts = parts;
   }
@@ -59,11 +59,11 @@ class Key {
 /** Generates a series of [key: val] values from a flattened json object */
 export function* flatten(params: unknown, filters?: Array<string>) {
   filters = filters || [];
-  let revFilters = filters.map(f => {
-    const a = f.split('.')
+  const revFilters = filters.map(f => {
+    const a = f.split('.');
     a.reverse();
     return a;
-  })
+  });
 
   for (const [key, val] of flattenRecursive(new Key(), params, revFilters)) {
     yield [key.toString(), val];
@@ -101,34 +101,34 @@ function* flattenRecursive(path: Key, target: unknown, filters: string[][]): Gen
     return;
   }
   switch(typeof(target)) {
-    case 'string':
-      yield [path, `"${target}"`];
-      break;
-    case 'number':
-    case 'bigint':
-    case 'boolean':
-    case 'undefined':
-      yield [path, String(target)];
-      break;
-    case 'object':
-      for (const [key, val] of Object.entries(target as object)) {
-        yield* flattenFilter(path, key, val, filters);
-      }
-      break;
-    default:
-      throw new Error('Unrecognized object type: ' + typeof(target));
+  case 'string':
+    yield [path, `"${target}"`];
+    break;
+  case 'number':
+  case 'bigint':
+  case 'boolean':
+  case 'undefined':
+    yield [path, String(target)];
+    break;
+  case 'object':
+    for (const [key, val] of Object.entries(target as object)) {
+      yield* flattenFilter(path, key, val, filters);
+    }
+    break;
+  default:
+    throw new Error('Unrecognized object type: ' + typeof(target));
   }
 }
 
 /** Flatten a json object, without the outermost brackets. */
 export function* flattenBody(params: unknown, filters?: Array<string>) {
-  let gen = flatten(params, filters);
-  let sep = ''
+  const gen = flatten(params, filters);
+  let sep = '';
   while (true) {
     const { value, done } = gen.next();
     if (done) break;
     yield `${sep}"${value[0]}":${JSON.stringify(value[1])}`;
-    sep = ','
+    sep = ',';
   }
 }
 
@@ -183,8 +183,8 @@ export function* yieldArray(arr: Iterable<object>) {
   yield ']';
 }
 
-const tokenPattern = /[.\[\]]/
-const isNum = /^\d+$/
+const tokenPattern = /[.\[\]]/;
+const isNum = /^\d+$/;
 
 /** Convert a flattened object into a deeply nested object */
 export function inflateObject<T = string>(obj: {[key: string]: T}) {
@@ -222,7 +222,7 @@ export function inflateObject<T = string>(obj: {[key: string]: T}) {
     entries.forEach(([k, v]) => {
       // @ts-ignore
       obj[k] = _check(v);
-    })
+    });
     return obj;
   }
 
@@ -239,10 +239,10 @@ export function querySelector<T extends HTMLElement = HTMLElement>(selector: str
 /** Converts a number into binary-based byte string */
 export function formatBytes(bytes: number, decimals = 2) {
   // https://stackoverflow.com/a/18650828
-  if (!+bytes) return '0B'
+  if (!+bytes) return '0B';
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+  const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
@@ -292,11 +292,11 @@ export class BiMap<T, U> extends Map<T, U> {
 }
 
 /** Builds a regex-escape function, skipping provided characters */
-export function regexEscaper(skip: string='') {
+export function regexEscaper(skip='') {
   const escapeBrackets = (s: string) => s.replace(']', '\\]').replace('[', '\\[');
   const skipRe = new RegExp(`[${escapeBrackets(skip)}]`);
   const chars = escapeBrackets('.+*?^$()[]{}|'.replace(skipRe, ''));
-  const charsRe = new RegExp(`[${chars}]`)
+  const charsRe = new RegExp(`[${chars}]`);
   return (str: string) => str.replace(charsRe, c => '\\' + c);
 }
 
@@ -316,7 +316,7 @@ export function globToRegex(glob: string, sep: string) {
 /** Test if an object is indeed empty */
 export function isEmptyObject(obj: any) {
   // https://stackoverflow.com/a/59787784
-  for(var i in obj) { return false; }
+  for(const i in obj) { return false; }
   return true;
 }
 
@@ -344,24 +344,24 @@ export function htmlElement(tagName: string, attrs?: ElementAttributes, ...child
   const el = document.createElement(tagName);
   for (const [attr, val] of Object.entries(attrs ?? {})) {
     switch(attr) {
-      case 'download': (el as HTMLAnchorElement).download = val as string; break;
-      case 'innerText': el.innerText = val as string; break;
-      case 'innerHTML': el.innerHTML = val as string; break;
-      case 'classList': (val as string[]).forEach(c => el.classList.add(c)); break
-      case 'dataset':
-        for (const [k, v] of Object.entries(val)) {
-          el.dataset[k] = v as string;
-        }
-        break;
-      case 'style':
-        for (const [k, v] of Object.entries(val)) {
-          el.style.setProperty(k, v);
-        }
-        break;
-      case 'onClick': el.addEventListener('click', val as (e: Event) => any); break;
-      case 'onMouseEnter': el.addEventListener('mouseenter', val as (e: Event) => any); break;
-      case 'onMouseLeave': el.addEventListener('mouseleave', val as (e: Event) => any); break;
-      default: el.setAttribute(attr, val as string);
+    case 'download': (el as HTMLAnchorElement).download = val as string; break;
+    case 'innerText': el.innerText = val as string; break;
+    case 'innerHTML': el.innerHTML = val as string; break;
+    case 'classList': (val as string[]).forEach(c => el.classList.add(c)); break;
+    case 'dataset':
+      for (const [k, v] of Object.entries(val)) {
+        el.dataset[k] = v as string;
+      }
+      break;
+    case 'style':
+      for (const [k, v] of Object.entries(val)) {
+        el.style.setProperty(k, v);
+      }
+      break;
+    case 'onClick': el.addEventListener('click', val as (e: Event) => any); break;
+    case 'onMouseEnter': el.addEventListener('mouseenter', val as (e: Event) => any); break;
+    case 'onMouseLeave': el.addEventListener('mouseleave', val as (e: Event) => any); break;
+    default: el.setAttribute(attr, val as string);
     }
   }
   children.forEach(c => el.appendChild(c));
@@ -377,8 +377,8 @@ export function runDemo(publisher: (packet: object) => void) {
     slow: number;
   
     constructor(frequency: number, offset: number, count: number, fast: number, slow: number) {
-      this.frequency = frequency
-      this.offset = offset
+      this.frequency = frequency;
+      this.offset = offset;
       this.count = count;
       this.fast = fast;
       this.slow = slow;
@@ -392,7 +392,7 @@ export function runDemo(publisher: (packet: object) => void) {
       if (x > 0.5) timeout = this.slow;
       const dice: string[] = [];
       for (let i=0; i<2*Math.random(); i++) {
-        dice.push(String(Math.floor(Math.random() * 6 + 1)))
+        dice.push(String(Math.floor(Math.random() * 6 + 1)));
       }
       for (let index=0; index<this.count; index++) {
         publisher({

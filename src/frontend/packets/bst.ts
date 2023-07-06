@@ -9,7 +9,7 @@ export class BSTRoot<T> {
       if (left < right) return -1;
       if (right < left) return 1;
       return 0;
-    })
+    });
   }
 
   remove(value: T|undefined) {
@@ -70,8 +70,8 @@ class BST<T> {
 
   left: BST<T>|null = null;
   right: BST<T>|null = null;
-  depth: number = 0;
-  size: number = 0;
+  depth = 0;
+  size = 0;
   
   constructor(value: T, comparator: Comparator<T>) {
     this.value = value;

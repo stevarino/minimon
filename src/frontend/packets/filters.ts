@@ -11,12 +11,12 @@
  *           - field
  */
 
-import { DefaultMap, globToRegex, isEmptyObject } from "../../lib";
-import { Trie } from "./trie";
-import { Packet, ROOT, NULL } from "./lib"
+import { DefaultMap, globToRegex, isEmptyObject } from '../../lib';
+import { Trie } from './trie';
+import { Packet, ROOT, NULL } from './lib';
 import { PacketStore } from './packetStore';
-import { State } from "../page/common";
-import { difference } from "../../setLib";
+import { State } from '../page/common';
+import { difference } from '../../setLib';
 
 
 /** Function signature for tests used internally in filters. */
@@ -44,7 +44,7 @@ export class FilterType {
   }
 
   static forEach(callback: (type: FilterType) => void) {
-    this.types.forEach((type) => callback(type))
+    this.types.forEach((type) => callback(type));
   }
 
   static get(op: string): FilterType {
@@ -57,7 +57,7 @@ export class FilterType {
   }
 }
 
-export class REType extends FilterType {};
+export class REType extends FilterType {}
 
 export const EQUALS = new FilterType('==', (v, t) => v === t || (v === undefined && t === NULL));
 export const NOT_EQUALS = new FilterType('!=', (v, t) => v !== t && (v !== undefined || t !== NULL));
@@ -103,8 +103,8 @@ export class FilterItem {
 
   toJSON() {
     return this.filters.map(f => {
-      return { op: f.type.label, testValue: f.stringValue }
-    })
+      return { op: f.type.label, testValue: f.stringValue };
+    });
   }
 
   /** Determine if this item is safe to remove, and if so, clean up references. */
@@ -121,9 +121,9 @@ export class FilterItem {
   }
 
   removeFilter(type: FilterType, value: string): boolean {
-    let ids: number[] = [];
+    const ids: number[] = [];
     this.filters.forEach((filter, i) => {
-        if (filter.type == type && String(filter.testValue) == value) {
+      if (filter.type == type && String(filter.testValue) == value) {
         ids.push(i);
       }
     });
@@ -211,14 +211,14 @@ export class FilterSet {
 
     const groupedFields: Grouping = {};
     for (const item of groups) {
-      const matchedFields: {[field: string]: string} = {}
+      const matchedFields: {[field: string]: string} = {};
       for (const field of item.getFields()) {
         if (item.regex == undefined || item.regex.test(field)) {
           matchedFields[field] = packet.payload[field]?.value ?? NULL;
         }
       }
       groupedFields[item.searchParam] = matchedFields;
-    };
+    }
     return groupedFields;
   }
 
@@ -280,7 +280,7 @@ export class FilterSet {
   }
 
   getOrCreateItem(param: string): FilterItem {
-    let item = this.items.get(param)
+    let item = this.items.get(param);
     if (item === undefined) {
       item = new FilterItem(param);
       this.items.set(param, item);
@@ -326,7 +326,7 @@ export class FilterSet {
       const str = `${s.param} ${s.op} ${s.value}`;
       updates.getOrCreate(s.param).value.add(str);
       newParams.add(s.param);
-      updateLookup.set(str, s)
+      updateLookup.set(str, s);
     });
 
     const toRemove: string[] = [];
@@ -364,12 +364,12 @@ export class FilterSet {
           } else {
             const filter = existingMap.get(update);
             if (filter === undefined) {
-              console.error("Unable to lookup filter:  ", update);
+              console.error('Unable to lookup filter:  ', update);
               return;
             }
             item.removeFilter(filter.type, String(filter.testValue));
           }
-        })
+        });
       }
     });
 

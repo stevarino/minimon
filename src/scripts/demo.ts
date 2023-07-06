@@ -11,7 +11,7 @@ runDemo((packet) => server.jsonEvent(packet));
 
 ['SIGINT', 'SIGQUIT', 'SIGTERM'].forEach(signal => {
   process.on(signal, function() {
-    console.info("Caught", signal);
+    console.info('Caught', signal);
     server.close();
     process.exit();
   });

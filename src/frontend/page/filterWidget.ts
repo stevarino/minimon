@@ -1,6 +1,6 @@
-import { htmlElement, htmlText, querySelector } from "../../lib";
-import { State } from "./common";
-import { changeState } from "./state";
+import { htmlElement, htmlText, querySelector } from '../../lib';
+import { State } from './common';
+import { changeState } from './state';
 
 /** Reference for all dropdowns currently rendered */
 const EL_TO_DROPDOWNS = new WeakMap<Element, State[][]>();
@@ -52,7 +52,7 @@ export function filtersFromParam(param: string, fieldValues: {[key: string]: str
         stateSet.push(
           [ new State(param, '==', value), new State(param, '!*', ''), ],
           [ new State(param, '!=', value) ],
-        )
+        );
       }
     }
   });
@@ -60,7 +60,7 @@ export function filtersFromParam(param: string, fieldValues: {[key: string]: str
     stateSet.push(
       [ new State(param, '~', values), new State(param, '!*', ''), ],
       [ new State(param, '!~', values) ],
-    )
+    );
   }
   return stateSet;
 }
@@ -115,7 +115,7 @@ export function filtersFromArray(filters: [param: string, op: string, value: str
 
 function showFiltersList(e: MouseEvent) {
   e.stopPropagation();
-  let el = (e.target as HTMLElement|null)?.closest('.filter_dropdown') ?? null;
+  const el = (e.target as HTMLElement|null)?.closest('.filter_dropdown') ?? null;
   if (el === null) {
     console.error('unable to find filter_dropdown', e);
     return;
@@ -129,9 +129,9 @@ function showFiltersList(e: MouseEvent) {
   const dd = DROPDOWN_EL;
 
   dd.innerHTML = '';
-  filters?.forEach(f => dd.append(makeFilterDropdownItem(f)))
+  filters?.forEach(f => dd.append(makeFilterDropdownItem(f)));
   dd.style.top = String(bb.top);
-  dd.style.minWidth = String(bb.width)
+  dd.style.minWidth = String(bb.width);
   dd.style.display = 'block';
   dd.style.left = String(bb.right - dd.getBoundingClientRect().width);
 }

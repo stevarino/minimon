@@ -4,7 +4,7 @@ import { View } from '../packets';
 import { Grouping } from '../packets/filters';
 import { htmlElement, querySelector } from '../../lib';
 import * as common from './common';
-import { filtersFromArray, filtersFromGrouping, filtersFromParam, filterWidget } from "./filterWidget";
+import { filtersFromArray, filtersFromGrouping, filtersFromParam, filterWidget } from './filterWidget';
 
 
 declare global {
@@ -91,7 +91,7 @@ function tooltip(context: any) {
   if (tooltipModel.body) {
     const bodyLines = tooltipModel.body.map((b: {lines: string[]}) => b.lines);
 
-    let rows: (HTMLElement)[] = [];
+    const rows: (HTMLElement)[] = [];
 
     bodyLines.forEach(function (lines: string[], i: number) {
       const colors = tooltipModel.labelColors[i];
@@ -124,7 +124,7 @@ function tooltip(context: any) {
           filterWidget(lineEl, filtersFromGrouping(grouping))
         ));
         for (const [searchTerm, fields] of Object.entries(grouping)) {
-          let displayValue: string = '';
+          let displayValue = '';
           const values = Object.values(fields);
           if (values.length === 1) {
             displayValue = values[0];
@@ -137,7 +137,7 @@ function tooltip(context: any) {
             if (i === values.length) {
               displayValue = `[ ${values.join(', ')} ]`;
             } else {
-              displayValue = `[ ${ values.slice(0, i).join(', ') }, ... ]`
+              displayValue = `[ ${ values.slice(0, i).join(', ') }, ... ]`;
             }
           }
           row.appendChild(htmlElement('td', {},
