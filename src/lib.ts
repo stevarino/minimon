@@ -102,7 +102,7 @@ function* flattenRecursive(path: Key, target: unknown, filters: string[][]): Gen
   }
   switch(typeof(target)) {
     case 'string':
-      yield [path, target];
+      yield [path, `"${target}"`];
       break;
     case 'number':
     case 'bigint':
@@ -149,6 +149,26 @@ export function* yieldWithSize(gen: Iterable<string>) {
   yield `,"_sz":${total}`;
 }
 
+/** Joins a sequence similar to str.join(), but returns it as an iterator */
+export function* yieldJoin(iter: Iterable<string>, glue: string) {
+  let first = true;
+  for (const item of iter) {
+    if (!first) {
+      yield ',';
+    } else {
+      first = false;
+    }
+    yield item;
+  }
+}
+
+/** Applies a function to each item  */
+export function* yieldMap<T,U>(iter: Iterable<T>, callback: (arg: T) => U) {
+  for (const item of iter) {
+    yield callback(item);
+  }
+}
+
 export function* yieldArray(arr: Iterable<object>) {
   yield '[';
   let first = true;
@@ -167,7 +187,7 @@ const tokenPattern = /[.\[\]]/
 const isNum = /^\d+$/
 
 /** Convert a flattened object into a deeply nested object */
-export function inflateObject(obj: {[key: string]: string}) {
+export function inflateObject<T = string>(obj: {[key: string]: T}) {
   const output = {};
   Object.entries(obj).forEach(([key, val]) => {
     let target: {[key: string]: unknown} = output;
@@ -183,8 +203,11 @@ export function inflateObject(obj: {[key: string]: string}) {
   });
 
   /** Convert any array-like objects into arrays */
-  function _check(target: object|string): object|Array<unknown>|string {
+  function _check(target: object|string): object|Array<unknown>|string|T {
     if (typeof target === 'string') {
+      return target;
+    }
+    if (target.constructor.name !== 'Object') {
       return target;
     }
     const entries = Object.entries(target);
@@ -305,6 +328,7 @@ export function htmlText(t: string) {
 type ElementAttributes = {
   href?: string,
   title?: string,
+  download?: string,
 
   innerText?: string,
   innerHTML?: string,
@@ -320,6 +344,7 @@ export function htmlElement(tagName: string, attrs?: ElementAttributes, ...child
   const el = document.createElement(tagName);
   for (const [attr, val] of Object.entries(attrs ?? {})) {
     switch(attr) {
+      case 'download': (el as HTMLAnchorElement).download = val as string; break;
       case 'innerText': el.innerText = val as string; break;
       case 'innerHTML': el.innerHTML = val as string; break;
       case 'classList': (val as string[]).forEach(c => el.classList.add(c)); break

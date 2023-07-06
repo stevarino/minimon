@@ -214,7 +214,7 @@ export class FilterSet {
       const matchedFields: {[field: string]: string} = {}
       for (const field of item.getFields()) {
         if (item.regex == undefined || item.regex.test(field)) {
-          matchedFields[field] = packet.payload[field] ?? NULL;
+          matchedFields[field] = packet.payload[field]?.value ?? NULL;
         }
       }
       groupedFields[item.searchParam] = matchedFields;
@@ -240,7 +240,7 @@ export class FilterSet {
       for (const filter of items.filters) {
         let keep = false;
         for (const field of items.getFields()) {
-          if (filter.type.check(packet.payload[field] as string|undefined, filter.testValue)) {
+          if (filter.type.check(packet.payload[field]?.value as string|undefined, filter.testValue)) {
             keep = true;
             break;
           }

@@ -1,4 +1,5 @@
-import { querySelector, yieldArray } from '../../lib';
+import { flatten, htmlElement, inflateObject, querySelector, yieldJoin, yieldMap } from '../../lib';
+import { PacketField, Payload } from '../packets';
 
 interface ButtonCallback {
   [key: string]: (target: HTMLElement) => void;
@@ -10,7 +11,7 @@ function showPanel(id: string) {
     hideSidebar();
   } else {
     showSidebar();
-    document.querySelectorAll(`[data-panel="${id}"]`).forEach(btn => {
+    document.querySelectorAll(`[daa-panel="${id}"]`).forEach(btn => {
       btn.classList.add('active');
     });
     div.style.display = 'block';
@@ -77,14 +78,16 @@ function showSidebar() {
 export const buttonCallbacks: ButtonCallback = {  
   hideSidebar,
   download: () => {
-    const data = Array.from(yieldArray(window.VIEW.getPackets()));
+    const data = ['[', ...yieldJoin(yieldMap<Payload, string>(
+      window.VIEW.getPackets(), (payload) => JSON.stringify(
+        inflateObject<PacketField>(payload))
+      ), ','), ']'];
     const blob = new Blob(data, { type: 'application/json' });
-    const el = window.document.createElement('a');
-    el.href = window.URL.createObjectURL(blob);
-    el.download = 'data.json';
+    const href = window.URL.createObjectURL(blob);
+    const el = htmlElement('a', { href, download: 'data.json' }) as HTMLAnchorElement;
     document.body.appendChild(el);
     el.click();
     document.body.removeChild(el);
-    window.URL.revokeObjectURL(el.href);
+    window.URL.revokeObjectURL(href);
   }
 }

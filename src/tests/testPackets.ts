@@ -8,13 +8,17 @@ function getTestPacket(
       payload: {[key: string]: string}
     ): packets.Packet {
   _testPacketId += 1;
+  const payloadObj: {[k: string]: packets.PacketField} = {};
+  Object.entries(payload).forEach(([k, v]) => {
+    payloadObj[k] = new packets.PacketField(v);
+  });
   const packet = {
     header: {
       id: _testPacketId,
       ms: 1000,
       size: 0,
     },
-    payload: payload
+    payload: payloadObj
   };
   Object.assign(packet.header, header ?? {});
   return packet;

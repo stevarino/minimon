@@ -1,5 +1,5 @@
 import { querySelector, formatBytes } from '../../lib';
-import { Packet } from '../packets';
+import { Packet, PacketField } from '../packets';
 import { FrontendOptions } from '../../options';
 import * as common from './common';
 import { DemoEventSource, demoEventSource, demoOptions, IS_DEMO } from './frontendDemo';
@@ -115,8 +115,8 @@ eventSource.addEventListener('body', event => {
     return;
   }
   [name, next] = scan(event.data, ':', next);
-  const value = event.data.slice(next);
-  packet.payload[name] = value;
+  let value = event.data.slice(next);
+  packet.payload[name] = new PacketField(value);
   packet.header.size += name.length + value.length;
 });
 

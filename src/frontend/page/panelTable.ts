@@ -144,7 +144,8 @@ function loadTable(selector: string, data: packets.Table) {
               console.error('Unable to load packet: ', packetId);
               return;
             }
-            const packetString = JSON.stringify(inflateObject(packet.payload), undefined, 2);
+            const inflated = inflateObject<packets.PacketField>(packet.payload);
+            const packetString = JSON.stringify(inflated, undefined, 2);
             querySelector('#modal h1').innerText = `Packet ${packetId}`;
             querySelector('#modal pre').innerText = packetString;
             querySelector<HTMLDialogElement>('#modal').showModal();

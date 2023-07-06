@@ -13,8 +13,38 @@ export interface Packet {
     size: number;
   }
   /** defined fields */
-  payload: {
-    [key: string]: string;
+  payload: Payload
+}
+
+export interface Payload {
+  [key: string]: PacketField
+}
+
+/**  */
+export class PacketField {
+  value: string;
+  isString: boolean;
+
+  constructor(value: string) {
+    if (value.startsWith('"')) {
+      this.value = value.slice(1, -1);
+      this.isString = true;
+    } else {
+      this.value = value;
+      this.isString = false;
+    }
+  }
+
+  toString() {
+    if (this.isString) {
+      return `"${this.value}"`
+    }
+    return this.value;
+  }
+
+  toJSON() {
+    console.log('toJSON: ', this, JSON.parse(this.toString()))
+    return JSON.parse(this.toString());
   }
 }
 

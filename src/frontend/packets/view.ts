@@ -174,14 +174,12 @@ export class View {
     return this.filters.getItems();
   }
 
-  getPackets() {
-    const packets = [];
+  *getPackets() {
     for (const packet of this.storage.packets) {
       if (!this.filters.isFiltered(packet)) {
-        packets.push(packet);
+        yield packet.payload;
       }
     }
-    return packets;
   }
 
   getAggregateTable(): Table {
