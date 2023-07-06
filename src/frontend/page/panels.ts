@@ -15,8 +15,8 @@ function showPanel(id: string) {
       btn.classList.add('active');
     });
     div.style.display = 'block';
-    const tabButtons = querySelector("#sidebar .tab_buttons");
-    tabButtons.querySelectorAll("button").forEach(el => {
+    const tabButtons = querySelector('#sidebar .tab_buttons');
+    tabButtons.querySelectorAll('button').forEach(el => {
       if (!el.classList.contains('close_panel')) {
         el.parentElement?.removeChild(el);
       }
@@ -81,7 +81,7 @@ export const buttonCallbacks: ButtonCallback = {
     const data = ['[', ...yieldJoin(yieldMap<Payload, string>(
       window.VIEW.getPackets(), (payload) => JSON.stringify(
         inflateObject<PacketField>(payload))
-      ), ','), ']'];
+    ), ','), ']'];
     const blob = new Blob(data, { type: 'application/json' });
     const href = window.URL.createObjectURL(blob);
     const el = htmlElement('a', { href, download: 'data.json' }) as HTMLAnchorElement;
@@ -90,4 +90,4 @@ export const buttonCallbacks: ButtonCallback = {
     document.body.removeChild(el);
     window.URL.revokeObjectURL(href);
   }
-}
+};

@@ -7,15 +7,15 @@ import * as fs from 'fs';
 
 const packages = {
   'accessible-autocomplete': 'node_modules/accessible-autocomplete/dist'
-}
+};
 
-var root =path.resolve(__dirname, '..', '..');
-var input = path.resolve(root, 'static');
-var output = path.resolve(root, 'dist', 'static')
+const root =path.resolve(__dirname, '..', '..');
+const input = path.resolve(root, 'static');
+const output = path.resolve(root, 'dist', 'static');
 fs.readdirSync(input).forEach(f => {
   console.info('Copying ', f);
-  fs.copyFileSync(path.resolve(input, f), path.resolve(output, f))
-})
+  fs.copyFileSync(path.resolve(input, f), path.resolve(output, f));
+});
 
 for (const [name, src] of Object.entries(packages)) {
   fs.readdirSync(path.resolve(root, src)).forEach(f => {
@@ -26,6 +26,6 @@ for (const [name, src] of Object.entries(packages)) {
     if (!fs.existsSync(path.resolve(output, name))) {
       fs.mkdirSync(path.resolve(output, name));
     }
-    fs.copyFileSync(path.resolve(root, src, f), path.resolve(output, name, f))
+    fs.copyFileSync(path.resolve(root, src, f), path.resolve(output, name, f));
   });
 }

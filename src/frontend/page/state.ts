@@ -1,9 +1,9 @@
-import { regexEscape } from "../../lib";
-import { difference, intersection } from "../../setLib";
-import { FilterType } from "../packets/filters";
+import { regexEscape } from '../../lib';
+import { difference, intersection } from '../../setLib';
+import { FilterType } from '../packets/filters';
 import { State, OPTIONS, STATE } from './common';
 
-const FILTER_TYPE_RE = FilterType.types.map(f => regexEscape(f.label)).join('|')
+const FILTER_TYPE_RE = FilterType.types.map(f => regexEscape(f.label)).join('|');
 const FILTER_RE = new RegExp(`^(.*?)(${FILTER_TYPE_RE}|\\*)(.*)$`);
 
 export function setState(state: State[]) {
@@ -16,7 +16,7 @@ export function changeState(toAdd: State[], toRemove: State[]) {
 
 window.addEventListener('popstate', (e) => {
   manager.updateFromHash(window.location.hash);
-})
+});
 
 interface History {
   pushState(obj: any, title: string, url: string): void;
@@ -27,11 +27,11 @@ export class StateManager {
   historyObj: History;
 
   constructor(historyObj?: History, initialState?: string) {
-    this.historyObj = historyObj ?? history
+    this.historyObj = historyObj ?? history;
     OPTIONS.addListener(() => {
       console.info('Initializing state from URL');
       this.updateFromHash(initialState ?? window.location.hash);
-    })
+    });
   }
 
   /** Convert a URL-hash change into state change */
@@ -106,7 +106,7 @@ export class StateManager {
     const hash = this.state.map(s => {
       const param = encodeURIComponent(s.param);
       const value = encodeURIComponent(s.value);
-      return `${param}${s.op}${value}`
+      return `${param}${s.op}${value}`;
     });
     this.historyObj.pushState(null, '', `#${hash.join('&')}`);
   }

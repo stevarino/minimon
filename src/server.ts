@@ -1,5 +1,5 @@
 import { hrtime } from 'node:process';
-import { IncomingMessage, ServerResponse, createServer } from "node:http";
+import { IncomingMessage, ServerResponse, createServer } from 'node:http';
 import * as path from 'node:path';
 
 import * as lib from './lib';
@@ -14,8 +14,8 @@ export interface EventOptions {
 
 export class Server {
   listeners: Set<ServerResponse>;
-  responseId: number = 0;
-  packetId: number = 0;
+  responseId = 0;
+  packetId = 0;
   options: Options;
 
   constructor(options?: PartialOptions) {
@@ -28,17 +28,17 @@ export class Server {
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
       console.info(req.url);
       switch (req.url) {
-        case '/packets':
-          res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache'
-          });
-          res.flushHeaders();
-          this.listeners.add(res);
-          this.write('options', JSON.stringify(this.options.frontend));
-          break;
-        default:
-          fileServer(req, res, finalhandler(req, res));
+      case '/packets':
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache'
+        });
+        res.flushHeaders();
+        this.listeners.add(res);
+        this.write('options', JSON.stringify(this.options.frontend));
+        break;
+      default:
+        fileServer(req, res, finalhandler(req, res));
       }
     });
     server.listen(this.options.server.port);
@@ -56,7 +56,7 @@ export class Server {
     const header = {
       id: packetId,
       ms: new Date().getTime(),
-    }
+    };
 
     const filters = [
       ...(this.options.server.jsonFilters ?? []),
@@ -92,7 +92,7 @@ export class Server {
    * @param {perResponseCallback} func
    */
   perListener(func: (res: ServerResponse) => void): void {
-    let deadResponses: Set<ServerResponse> = new Set();
+    const deadResponses: Set<ServerResponse> = new Set();
     this.listeners.forEach((r) => {
       if (r.writable) {
         func(r);
@@ -109,9 +109,9 @@ export class Server {
   write(event: string, str: Buffer|string) {
     this.responseId += 1;
     this.perListener(async r => {
-      r.write(`id: ${this.responseId}\nevent: ${event}\ndata: `)
+      r.write(`id: ${this.responseId}\nevent: ${event}\ndata: `);
       r.write(str);
-      r.write('\n\n')
+      r.write('\n\n');
     });
   }
 

@@ -1,9 +1,9 @@
 
-import { DefaultMap } from "../../lib";
-import { Dataset, Packet, NULL, ROOT } from "./lib";
-import { FilterItem, FilterSet, Grouping } from "./filters";
-import { FieldContainer } from './fieldContainer'
-import { buildFrontendOptions, FrontendOptions } from "../../options";
+import { DefaultMap } from '../../lib';
+import { Dataset, Packet, NULL, ROOT } from './lib';
+import { FilterItem, FilterSet, Grouping } from './filters';
+import { FieldContainer } from './fieldContainer';
+import { buildFrontendOptions, FrontendOptions } from '../../options';
 
 export interface Table {
   headers: string[];
@@ -15,7 +15,7 @@ export enum TABLE_COLUMNS {
   ID = 'id',
   COUNT = '_cnt',
   SIZE = '_sz',
-};
+}
 export const KNOWN_COLUMNS = Object.values(TABLE_COLUMNS).map(c => String(c));
 
 /**
@@ -79,12 +79,12 @@ export class PacketStore {
     if (filters === undefined) filters = new FilterSet(this);
     const groups = filters.getGroups();
 
-    class XYMap extends DefaultMap<number,number> {};
+    class XYMap extends DefaultMap<number,number> {}
     const datasetMap = new DefaultMap<string, XYMap>(() => new XYMap(() => 0));
     for (const packet of this.packets) {
       if (filters.isFiltered(packet)) continue;
-      let grp = filters.getPacketGroupingString(packet, groups);
-      let dm = datasetMap.getOrCreate(grp).value;
+      const grp = filters.getPacketGroupingString(packet, groups);
+      const dm = datasetMap.getOrCreate(grp).value;
       const packet_x = this.bucket(packet.header.ms);
       dm.set(packet_x, (dm.getOrCreate(packet_x).value) + 1);
     }
@@ -94,7 +94,7 @@ export class PacketStore {
       pts.forEach((y, x) => {
         data.push({ x, y });
       });
-      datasets.push({ label, data })
+      datasets.push({ label, data });
     }
     return datasets;
   }
@@ -153,7 +153,7 @@ export class PacketStore {
       headers: headers,
       rows: rows,
       packets: packets,
-    }
+    };
   }
 
   tabulateUnaggregated(filters: FilterSet, limit: number): Table {
@@ -182,7 +182,7 @@ export class PacketStore {
       headers: headers,
       rows: rows,
       packets: packets,
-    }
+    };
   }
 
   getFields(): string[] {

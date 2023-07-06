@@ -1,5 +1,5 @@
-export const ROOT = 'Total'
-export const NULL = '␀'
+export const ROOT = 'Total';
+export const NULL = '␀';
 
 /**
  * A data packet, assumed to be a set of jsonpath-like string keys and
@@ -37,13 +37,13 @@ export class PacketField {
 
   toString() {
     if (this.isString) {
-      return `"${this.value}"`
+      return `"${this.value}"`;
     }
     return this.value;
   }
 
   toJSON() {
-    console.log('toJSON: ', this, JSON.parse(this.toString()))
+    console.log('toJSON: ', this, JSON.parse(this.toString()));
     return JSON.parse(this.toString());
   }
 }

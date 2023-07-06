@@ -1,4 +1,4 @@
-import { flatten } from './lib'
+import { flatten } from './lib';
 
 export type FrontendOptions = {
   /** How long to store packets (300,000ms or 5m) */
@@ -122,7 +122,7 @@ const frontendSchema = new DefaultSchema<FrontendOptions>([
   ['title', 'Squiggly Lines'],
   ['about', undefined],
 ], (options) => {
-  options._msPerBucket = options.duration / options.buckets
+  options._msPerBucket = options.duration / options.buckets;
 });
 
 const optionsSchema = new DefaultSchema<Options>([

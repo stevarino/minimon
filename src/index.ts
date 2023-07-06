@@ -1,4 +1,4 @@
-import { Server } from "./server";
+import { Server } from './server';
 import { Options, buildOptions, FrontendOptions, buildFrontendOptions, PartialOptions } from './options';
 
-export { Server, Options, buildOptions, FrontendOptions, buildFrontendOptions, PartialOptions }
+export { Server, Options, buildOptions, FrontendOptions, buildFrontendOptions, PartialOptions };

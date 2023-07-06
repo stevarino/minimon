@@ -1,9 +1,9 @@
 
-import { Dataset, Packet } from "./lib";
-import { FilterSet, FilterType } from "./filters";
-import { PacketStore, Table } from "./packetStore";
+import { Dataset, Packet } from './lib';
+import { FilterSet, FilterType } from './filters';
+import { PacketStore, Table } from './packetStore';
 import { FrontendOptions, buildFrontendOptions } from '../../options';
-import { State } from "../page/common";
+import { State } from '../page/common';
 
 interface CHART_DATA {
   datasets: Dataset[], 
@@ -21,7 +21,7 @@ export class View {
 
   // the current view - mapping of time => (datafield => total)
   chartData: CHART_DATA;
-  _currentTime: number = 0;
+  _currentTime = 0;
   options: FrontendOptions;
 
   constructor(chartData: CHART_DATA, updateCallback: (min: number, max: number) => void, options?: FrontendOptions) {
@@ -166,7 +166,7 @@ export class View {
 
   getGroupMapping() {
     return new Map(this.filters.getGroups().map(item => {
-      return [item.searchParam, [...item.getFields()]]
+      return [item.searchParam, [...item.getFields()]];
     }));
   }
 

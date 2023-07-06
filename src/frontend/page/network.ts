@@ -40,7 +40,7 @@ function setOptions(options: FrontendOptions) {
 export function calculateRate() {
   let start = 0;
   let end = 0;
-  let now = new Date().getTime();
+  const now = new Date().getTime();
   let cnt = 0;
   let size = 0;
   let trim = 0;
@@ -115,7 +115,7 @@ eventSource.addEventListener('body', event => {
     return;
   }
   [name, next] = scan(event.data, ':', next);
-  let value = event.data.slice(next);
+  const value = event.data.slice(next);
   packet.payload[name] = new PacketField(value);
   packet.header.size += name.length + value.length;
 });

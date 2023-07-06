@@ -1,8 +1,8 @@
-import * as packets from "../packets"
-import { inflateObject, formatBytes, querySelector, htmlElement, DefaultMap } from '../../lib'
+import * as packets from '../packets';
+import { inflateObject, formatBytes, querySelector, htmlElement, DefaultMap } from '../../lib';
 import { buttonCallbacks } from './panels';
-import { filtersFromField, filtersFromGrouping, filterWidget } from "./filterWidget";
-import { STATE } from "./common";
+import { filtersFromField, filtersFromGrouping, filterWidget } from './filterWidget';
+import { STATE } from './common';
 
 declare global {
   /** Packet references to prevent garbage collection */
@@ -24,7 +24,7 @@ Object.assign(buttonCallbacks, {
   dialogHide: function() {
     querySelector<HTMLDialogElement>('#modal').close();
     querySelector('#modal pre').innerText = '';
-    querySelector('#modal h1').innerText = `Packet _`;
+    querySelector('#modal h1').innerText = 'Packet _';
   },
   dialogCopy: function() {
     const pre = querySelector<HTMLPreElement>('#modal pre');
@@ -66,7 +66,7 @@ function comparer(idx: number, asc: boolean) {
         return v1.toString().localeCompare(v2);
       }
     }(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
-}};
+  };}
 
 /** Given a selector and some data, build an HTML table */
 function loadTable(selector: string, data: packets.Table) {
@@ -82,7 +82,7 @@ function loadTable(selector: string, data: packets.Table) {
   /** Field to params[] */
   const fieldLookup = new DefaultMap<string, string[]>(() => []);
   window.VIEW.getGroupMapping().forEach((fields, param) => {
-    fields.forEach(field => fieldLookup.getOrCreate(field).value.push(param))
+    fields.forEach(field => fieldLookup.getOrCreate(field).value.push(param));
   });
   table.append(thead_tr);
 
@@ -100,16 +100,16 @@ function loadTable(selector: string, data: packets.Table) {
             }
           });
           if (table === null) {
-            console.error('Unable to locate nearest table')
+            console.error('Unable to locate nearest table');
             return;
           }
           // TODO: See if we can preserve sort order across table generations...
           Array.from(table.querySelectorAll('tr:nth-child(n+2)'))
-              .sort(comparer(
-                // @ts-ignore
-                Array.from(th.parentNode.children).indexOf(th),
-                '1' == (th.dataset.asc = (th.dataset.asc === '1' ? '0' : '1'))))
-              .forEach(tr => table.appendChild(tr) );
+            .sort(comparer(
+              // @ts-ignore
+              Array.from(th.parentNode.children).indexOf(th),
+              '1' == (th.dataset.asc = (th.dataset.asc === '1' ? '0' : '1'))))
+            .forEach(tr => table.appendChild(tr) );
         },
       })
     );

@@ -3,12 +3,12 @@
  * wildcards, allowing for many-to-one mappings.
  */
 
-import * as setLib from '../../setLib'
+import * as setLib from '../../setLib';
 import { BiMap } from '../../lib';
 import { BSTRoot } from './bst';
 
 const numberPattern =  /^\d+$/;
-const tokenSplitPattern = /\]\[|\[|\]|\./
+const tokenSplitPattern = /\]\[|\[|\]|\./;
 
 export type TrieOptions = {collapseArrays: boolean, searchPrefixes: string[]};
 
@@ -30,7 +30,7 @@ export class Trie<T> {
     if (path.length === 0) {
       return this;
     }
-    let child = path.pop() as string;
+    const child = path.pop() as string;
     let trie = this.children.get(child);
     if(trie === undefined) {
       trie = new Trie(this);
@@ -43,12 +43,12 @@ export class Trie<T> {
   _find(path: string[], results: Trie<T>[]): void {
     if (path.length === 0) {
       // if (this.fields.size > 0 || this.values.size > 0) {
-        results.push(this);
+      results.push(this);
       // }  
       return;
     }
-    let next = path[path.length-1];
-    let rest = path.slice(0, -1);
+    const next = path[path.length-1];
+    const rest = path.slice(0, -1);
     if (next === '*') {
       this.children.forEach(trie => {
         trie._find(rest, results);
@@ -144,7 +144,7 @@ export class Trie<T> {
       fields: [...this.fields],
       values: [...this.values],
       children
-    }
+    };
   }
 }
 

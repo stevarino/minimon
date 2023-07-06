@@ -1,6 +1,6 @@
-import * as packets from "../packets"
-import { querySelector, htmlText, htmlElement } from "../..//lib"
-import { changeState } from "./state";
+import * as packets from '../packets';
+import { querySelector, htmlText, htmlElement } from '../..//lib';
+import { changeState } from './state';
 import * as common from './common';
 
 function fieldAutocomplete() {
@@ -73,7 +73,7 @@ common.STATE.addListener((state) => {
       addFilterItem(ul, s.param, s.op, s.value);
     }
   });
-})
+});
 
 function addGroupItem(ul: HTMLUListElement, param: string) {
   const li = createFilterListItem(ul, param);
