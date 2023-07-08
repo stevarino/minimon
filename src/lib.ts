@@ -1,3 +1,5 @@
+export const NULL = '␀'
+
 /** A Map object with a preset default (enable with getOrCreate) */
 export class DefaultMap<K, V> extends Map<K,V> {
   callback: (arg?: any) => V;
@@ -73,7 +75,10 @@ export function* flatten(params: unknown, filters?: Array<string>) {
 function* flattenFilter(path: Key, key: string, val: unknown, filters: string[][]): Generator<[Key, string]> {
   const newFilters = [];
   for (const filter of filters) {
-    if (filter.length === 1 && (filter[0] == key || filter[0] === '*' || filter[0] === '**')) return;
+    if (filter.length === 1 && (filter[0] == key || filter[0] === '*' || filter[0] === '**')) {
+      yield [path, NULL];
+      return;
+    }
     const newFilter = filter.slice();
     const last = newFilter.pop();
     if (last === key || last === '*') newFilters.push(newFilter);

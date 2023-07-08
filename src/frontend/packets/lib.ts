@@ -39,12 +39,20 @@ export class PacketField {
     if (this.isString) {
       return `"${this.value}"`;
     }
+    if (this.value === NULL) {
+      return "null";
+    }
     return this.value;
   }
 
   toJSON() {
-    console.log('toJSON: ', this, JSON.parse(this.toString()));
-    return JSON.parse(this.toString());
+    if (this.isString) {
+      return this.value;
+    }
+    if (this.value === NULL) {
+      return null;
+    }
+    return JSON.parse(this.value);
   }
 }
 
