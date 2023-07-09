@@ -17,6 +17,8 @@ export type FrontendOptions = {
   title: string;
   /** About panel html */
   about?: string;
+  /** Application specific filters */
+  favorites: {name: string, filters: [string, string, string][]}[];
 }
 
 export type ServerOptions = {
@@ -79,15 +81,9 @@ class DefaultSchema<T> {
   }
 
   apply(options?: any): T {
-    const notFound: string[] = [];
-    Array.from(flatten(options)).forEach(([key]) => {
-      if (this.paths.indexOf(key) === -1) {
-        notFound.push(key);
-      }
-    });
-    if (notFound.length > 0) throw new Error(`Unrecognized option[s]: [${notFound.join(', ')}]`);
-
+    const allPaths: string[] = [];
     for (const [optionPath, value] of this.defaults) {
+      allPaths.push(optionPath);
       const path = optionPath.split('.');
       let target = options;
       path.forEach((part, i) => {
@@ -106,11 +102,24 @@ class DefaultSchema<T> {
       }
       callback(target);
     }
+    
+    const notFound: string[] = [];
+    Array.from(flatten(options)).forEach(([key]) => {
+      // don't bother checking deep into options
+      if (allPaths.some(p => key.startsWith(p + '.'))) {
+        return;
+      }
+      if (this.paths.indexOf(key) === -1) {
+        notFound.push(key);
+      }
+    });
+    if (notFound.length > 0) {
+      throw new Error(`Unrecognized option[s]: [${notFound.join(', ')}]`);
+    }
+
     return options as T;
   }
 }
-
-
 
 const frontendSchema = new DefaultSchema<FrontendOptions>([
   ['duration', 300_000],
@@ -121,6 +130,7 @@ const frontendSchema = new DefaultSchema<FrontendOptions>([
   ['searchPrefixes', []],
   ['title', 'Squiggly Lines'],
   ['about', undefined],
+  ['favorites', []],
 ], (options) => {
   options._msPerBucket = options.duration / options.buckets;
 });

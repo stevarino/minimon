@@ -29,7 +29,16 @@ export function demoOptions() {
       data consists of seemingly random data, but can be pieced apart using groupings
       and filters.
       </p>
-    `
+    `,
+    favorites: [
+      { name: 'fast & slow', filters: [
+        ['fast', '*', ''],
+        ['slow', '*', ''],
+      ]},
+      { name: 'dice.*', filters: [
+        ['dice.*', '*', ''],
+      ]},
+    ]
   });
 }
 

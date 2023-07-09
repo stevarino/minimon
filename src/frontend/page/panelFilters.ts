@@ -1,5 +1,5 @@
 import * as packets from '../packets';
-import { querySelector, htmlText, htmlElement } from '../..//lib';
+import { querySelector, htmlText, htmlElement, createButton } from '../..//lib';
 import { changeState } from './state';
 import * as common from './common';
 
@@ -83,17 +83,10 @@ function addGroupItem(ul: HTMLUListElement, param: string) {
     htmlText(' '),
   );
 
-  li.append(htmlElement('button', {
-    innerText: 'close',
-    classList: ['material-symbols-outlined'],
-    dataset: {field: param},
-    onClick: e => {
-      const btn = e.target as HTMLButtonElement;
-      changeState([], [new common.State(btn.dataset.field as string, '*', '')]);
-      // window.VIEW.removeGroup(btn.dataset.field as string);
-      // rebuildFilterList();
-    },
-  }));
+  li.append(createButton<{param: string}>('close', 'Remove Grouping', 
+    (_, state) => {
+      changeState([], [new common.State(state.param, '*', '')]);
+    }, { param }));
 }
 
 function addFilterItem(ul: HTMLUListElement, param: string, op: string, value: string) {
@@ -109,23 +102,10 @@ function addFilterItem(ul: HTMLUListElement, param: string, op: string, value: s
       innerText: value,
     }),
     htmlText(' '),
-    htmlElement('button', {
-      innerText: 'close',
-      classList: ['material-symbols-outlined'],
-      dataset: {
-        field: param,
-        filter: op,
-        value: value,
-      },
-      onClick: e => {
-        const btn = e.target as HTMLButtonElement;
-        changeState([], [new common.State(
-          btn.dataset.field as string,
-          btn.dataset.filter as string,
-          btn.dataset.value as string,
-        )]);
-      },
-    })
+    createButton<{filter: [string, string, string]}>(
+      'close', 'Remove Filter', (e, s) => {
+        changeState([], [new common.State(...s.filter)]);
+      }, {filter: [param, op, value]}),
   );
 }
 

@@ -373,6 +373,26 @@ export function htmlElement(tagName: string, attrs?: ElementAttributes, ...child
   return el;
 }
 
+const buttonState = new WeakMap<HTMLElement, any>();
+
+export function createButton<T = object>(icon: string, title: string, onClick: (e: MouseEvent, state: T) => any, state?: T) {
+  const el = htmlElement('button', { 
+    onClick: (e) => {
+      const state = buttonState.get(e.target as HTMLElement);
+      if (state === undefined) {
+        console.error('Unable to find button state: ', e.target);
+      } else {
+        onClick(e, state as T);
+      }
+    },
+    title, 
+    innerText: icon,
+    classList: ['material-symbols-outlined'],
+  });
+  buttonState.set(el, state ?? {});
+  return el;
+}
+
 export function runDemo(publisher: (packet: object) => void) {
   class FlipFlop {
     frequency: number;

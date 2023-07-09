@@ -10,7 +10,7 @@ export function setState(state: State[]) {
   manager.setState(state);
 }
 
-export function changeState(toAdd: State[], toRemove: State[]) {
+export function changeState(toAdd: State[], toRemove?: State[]) {
   manager.changeState(toAdd, toRemove);
 }
 

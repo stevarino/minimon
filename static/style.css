@@ -127,21 +127,25 @@ a {
   width: 48px;
 }
 
-.buttons > * {
+#sidebar > ul.buttons > li {
+  margin: 24px auto;
+}
+
+.buttons > *, button {
   list-style: none;
   display: block;
   width: 24px;
   border: 1px solid #efefef;
   background-color: #fff;;
   border-radius: 0.25em;
-  margin: 24px auto;
   text-align: center;
   cursor: pointer;
   padding: 5px;
+  box-sizing: content-box;
 }
 
 /** ` :hover` and `*:hover` don't seem to work... */
-.buttons li:hover, .buttons button:hover, .buttons .active {
+.buttons li:hover, .buttons .active, button:hover {
   box-shadow: 2px 2px #aaa;
 }
 
@@ -195,22 +199,6 @@ input, select {
   border: 1px solid #ccc;
 }
 
-button {
-  display: inline-block;
-  background: transparent;
-  box-sizing: content-box;
-  width: 36px; /* 24px default font size + 12px */
-  border: 1px solid #efefef;
-  border-radius: 0.25em;
-  text-align: center;
-  cursor: pointer;
-  padding: 5px;
-}
-
-button:hover {
-  box-shadow: 1px 1px #ccc;
-}
-
 input:focus, select:focus {
   /* border: 1px solid #000; */
   outline: 3px solid #fd0;
@@ -222,15 +210,11 @@ input[disabled] {
   border-color: #aaa;
 }
 
-input[type=submit], button {
-  font-weight: bold;
-  cursor: pointer;
-}
-
 #filterOptions {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
-  grid-gap: 1em;
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 1em;
+  align-items: center;
 }
 
 #filterOptions input {
@@ -241,10 +225,6 @@ input[type=submit], button {
   display: inline-block;
   margin: auto 0;
   color: #999;
-}
-
-#filterOptions button {
-  margin: 1em auto;
 }
 
 #active_filters {
@@ -261,12 +241,11 @@ input[type=submit], button {
 }
 
 #active_filters li>* {
+  margin: 0;
   flex: auto;
 }
 
 #active_filters button {
-  cursor: pointer;
-  border-radius: 0.25em;
   border: 1px #fcc solid;
   background: transparent;
   color: #f00;
@@ -274,7 +253,6 @@ input[type=submit], button {
 
 #active_filters button:hover {
   border-color: #f00;
-  background: #fcc;
 }
 
 #active_filters span {
@@ -499,4 +477,19 @@ https://github.com/alphagov/accessible-autocomplete/blob/main/src/autocomplete.c
 #filterDropdown > div:hover {
   cursor: pointer;
   background: #99f;
+}
+
+#favorites {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1em;
+}
+
+#favorites span {
+  display: inline-block;
+  line-height: 28px;
+  border: 1px solid #eee;
+  border-radius: 0.25em;
+  padding: 4px 1em;
+  white-space: nowrap;
 }

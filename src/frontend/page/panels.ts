@@ -1,4 +1,4 @@
-import { flatten, htmlElement, inflateObject, querySelector, yieldJoin, yieldMap } from '../../lib';
+import { htmlElement, inflateObject, querySelector, yieldJoin, yieldMap } from '../../lib';
 import { PacketField, Payload } from '../packets';
 
 interface ButtonCallback {
@@ -11,7 +11,7 @@ function showPanel(id: string) {
     hideSidebar();
   } else {
     showSidebar();
-    document.querySelectorAll(`[daa-panel="${id}"]`).forEach(btn => {
+    document.querySelectorAll(`[data-panel="${id}"]`).forEach(btn => {
       btn.classList.add('active');
     });
     div.style.display = 'block';

@@ -21,13 +21,12 @@
 </div>
 <div id="sidebar" class="collapsed" data-chosen="">
   <ul class="buttons">
-    <!-- https://fonts.google.com/icons -->
     <li class="material-symbols-outlined" title="Filters &amp; Groups" data-panel="filterPanel">query_stats</li>
     <li class="material-symbols-outlined" title="View Aggregate Data" data-callback="loadAggTable" data-panel="aggPanel">table_view</li>
     <li class="material-symbols-outlined" title="View Packets" data-callback="loadPacketTable" data-panel="packetPanel">code</li>
-    <li class="material-symbols-outlined" title="Download (Filtered)" data-callback="download">download</li>
     <!-- <li class="material-symbols-outlined" title="Settings">tune</li> -->
-    <!-- <li class="material-symbols-outlined" title="Favorites">star</li> -->
+    <li class="material-symbols-outlined" title="Favorites" data-panel="favoritesPanel">star</li>
+    <li class="material-symbols-outlined" title="Download (Filtered)" data-callback="download">download</li>
   </ul>
   <ul class="buttons">
     <li class="material-symbols-outlined" title="About" data-panel="infoPanel">info</li>
@@ -45,12 +44,12 @@
       <div id="filterOptions">
         <select id="filter"></select>
         <input type="text" id="value" placeholder="Value" />
-        <button name="btn" value="Filter" title="Filter">
-          <span class="material-symbols-outlined">filter_alt</span>
+        <button name="btn" value="Filter" title="Filter" class="material-symbols-outlined">
+          filter_alt
         </button>
         <span>OR</span>
-        <button name="btn" value="Group By" title="Group By">
-          <span class="material-symbols-outlined">group_work</span>
+        <button name="btn" value="Group By" title="Group By"class="material-symbols-outlined">
+          group_work
         </button>
       </div>
     </form>
@@ -75,16 +74,12 @@
     <table></table>
   </div>
 
-  <!-- <div id="s_tune">
+  <!-- <div id="settingsPanel">
     <h1>Settings</h1>
-  </div> -->
-  <!-- <div id="s_star">
-    <h1>Favorites</h1>
-    <p>Coming soon</p>
   </div> -->
   <div id="favoritesPanel">
     <h1>Favorites</h1>
-    <p>Coming soon</p>
+    <div id="favorites"></div>
   </div>
   <div id="infoPanel">
     <div id="customInfo"></div>
