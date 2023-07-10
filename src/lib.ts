@@ -61,11 +61,12 @@ class Key {
 /** Generates a series of [key: val] values from a flattened json object */
 export function* flatten(params: unknown, filters?: Array<string>) {
   filters = filters || [];
-  const revFilters = filters.map(f => {
-    const a = f.split('.');
-    a.reverse();
-    return a;
-  });
+  const revFilters: string[][] = [];
+  for (const f of filters) {
+    const fa = f.split('.');
+    fa.reverse();
+    revFilters.push(fa);
+  }
 
   for (const [key, val] of flattenRecursive(new Key(), params, revFilters)) {
     yield [key.toString(), val];

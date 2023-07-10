@@ -54,7 +54,7 @@ export class PacketField {
     if (this.value === NULL) {
       return null;
     }
-    return JSON.parse(this.value);
+    return JSON.parse(this.value) ?? null;
   }
 }
 
