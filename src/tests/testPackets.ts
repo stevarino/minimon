@@ -74,7 +74,7 @@ test('IndexMultiGroups', t => {
   ];
   expectedLabels.forEach(label => {
     t.assert(
-      view.some((r) => r.label == JSON.stringify(label) && r.data[0].y == 1),
+      view.some((r) => r.label == JSON.stringify(label) && (r.data[0] as packets.CJS.Point).y == 1),
       `Expected label "${label}", received ${view.map(r => r.label)}`);
   });
 });

@@ -1,8 +1,6 @@
-import * as graph from './graph';
-import * as packetRate from './network';
-import * as panelFilters from './panelFilters';
-import * as panels from './panels';
-import * as panelTable from './panelTable';
-import * as panelFavorites from './panelFavorites';
-
-export { graph, packetRate, panelFilters, panels, panelTable, panelFavorites };
+export * as graph from './graph';
+export * as packetRate from './network';
+export * as panelFilters from './panelFilters';
+export * as panels from './panels';
+export * as panelTable from './panelTable';
+export * as panelFavorites from './panelFavorites';

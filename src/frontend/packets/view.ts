@@ -1,14 +1,8 @@
-
-import { Dataset, Packet } from './lib';
+import { Packet, CJS } from './lib';
 import { FilterSet, FilterType } from './filters';
 import { PacketStore, Table } from './packetStore';
 import { FrontendOptions, buildFrontendOptions } from '../../options';
 import { State } from '../page/common';
-
-interface CHART_DATA {
-  datasets: Dataset[], 
-  labels: string[]
-}
 
 /** Set of active filters and groups. */
 export class View {
@@ -20,11 +14,11 @@ export class View {
   refreshInterval = 300;
 
   // the current view - mapping of time => (datafield => total)
-  chartData: CHART_DATA;
+  chartData: CJS.ChartData;
   _currentTime = 0;
   options: FrontendOptions;
 
-  constructor(chartData: CHART_DATA, updateCallback: (min: number, max: number) => void, options?: FrontendOptions) {
+  constructor(chartData: CJS.ChartData, updateCallback: (min: number, max: number) => void, options?: FrontendOptions) {
     this.chartData = chartData;
 
     this.options = options ?? buildFrontendOptions({});
@@ -39,10 +33,10 @@ export class View {
   /** Generate a new series of datasets and merge it with the graph datasets */
   reindex() {
     this.chartData.datasets.length = 0;
-    this.chartData.labels.length = 0;
+    (this.chartData.labels as string[]).length = 0;
     const newData = this.storage.render(this.filters).forEach(ds => {
       this.chartData.datasets.push(ds);
-      this.chartData.labels.push(ds.label);
+      (this.chartData.labels as string[]).push(ds.label as string);
     });
     this.updateCallback();
   }
@@ -94,7 +88,7 @@ export class View {
       let i = 0;
       for (const pt of dataset.data) {
         i += 1;
-        if (pt.x >= ms) break;
+        if ((pt as CJS.Point).x >= ms) break;
       }
       dataset.data.splice(0, i - 1);
     }
@@ -125,8 +119,8 @@ export class View {
     for (const dataset of this.chartData.datasets) {
       if (dataset.label == label) {
         found = true;
-        if (dataset.data.length > 0 && dataset.data[dataset.data.length - 1].x == bucket) {
-          dataset.data[dataset.data.length - 1].y += 1;
+        if (dataset.data.length > 0 && (dataset.data[dataset.data.length - 1] as CJS.Point).x == bucket) {
+          (dataset.data[dataset.data.length - 1] as CJS.Point).y += 1;
         } else {
           dataset.data.push({ x: bucket, y: 1 });
         }
@@ -136,7 +130,7 @@ export class View {
 
     if (found === false) {
       this.chartData.datasets.push({ label, data: [{ x: bucket, y: 1 }], });
-      this.chartData.labels.push(label);
+      (this.chartData.labels as string[]).push(label);
       this.refresh(now);
     } else {
       this.maybeRefresh(now);

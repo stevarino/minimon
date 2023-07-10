@@ -4,7 +4,6 @@ import * as common from './common';
 import { createButton, htmlElement, querySelector } from '../../lib';
 
 common.OPTIONS.addListener((options) => {
-  console.log(options);
   const favEl = querySelector('#favorites');
   favEl.innerHTML = '';
   options.favorites.forEach(f => {

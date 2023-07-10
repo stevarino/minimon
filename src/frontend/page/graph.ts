@@ -1,11 +1,11 @@
+import { Chart } from '../chartJS';
+
 import { ROOT } from '../packets';
-// import { rebuildFilterList } from './panelFilters';
 import { View } from '../packets';
 import { Grouping } from '../packets/filters';
 import { htmlElement, querySelector } from '../../lib';
 import * as common from './common';
-import { filtersFromArray, filtersFromGrouping, filtersFromParam, filterWidget } from './filterWidget';
-
+import { filtersFromGrouping, filtersFromParam, filterWidget } from './filterWidget';
 
 declare global {
   var VIEW: View;
@@ -16,8 +16,7 @@ let HOVER_LOCK = false;
 
 const legendParser = /(.*):\s+(\d+)\s*$/;
 
-// @ts-ignore
-const CHART = new Chart(querySelector('#chart'), {
+const CHART = new Chart(querySelector<HTMLCanvasElement>('#chart'), {
   type: 'line',
   options: {
     maintainAspectRatio: false,
@@ -33,7 +32,9 @@ const CHART = new Chart(querySelector('#chart'), {
     scales: {
       x: {
         type: 'time',
-        unit: 'minute',
+        // time: {
+        //   unit: 'minute',
+        // },
       }
     },
     plugins: {
@@ -58,8 +59,10 @@ const CHART = new Chart(querySelector('#chart'), {
 });
 
 window.VIEW = new View(CHART.data, (min: number, max: number) => {
-  CHART.options.scales.x.min = min;
-  CHART.options.scales.x.max = max;
+  if (CHART.options.scales?.x !== undefined) {
+    CHART.options.scales.x.min = min;
+    CHART.options.scales.x.max = max;
+  }
   CHART.update();
 });
 
@@ -143,10 +146,6 @@ function tooltip(context: any) {
           row.appendChild(htmlElement('td', {},
             filterWidget(`${searchTerm} : ${displayValue}`, filtersFromParam(searchTerm, fields))
           ));
-          // const td = htmlElement('td', {'innerText': `${searchTerm} : ${displayValue}`});
-          // row.appendChild(td);
-          // td.append(
-          //   paramFilterDrowpdown(searchTerm,  fields));
         }
       });
     });

@@ -10,6 +10,8 @@
   "types": "index.d.ts",
   "dependencies": {
     "accessible-autocomplete": "^2.0.4",
+    "chart.js": "^4.3.0",
+    "date-fns": "^2.30.0",
     "finalhandler": "^1.2.0",
     "serve-static": "^1.15.0"
   },

@@ -1,6 +1,6 @@
 
 import { DefaultMap } from '../../lib';
-import { Dataset, Packet, NULL, ROOT } from './lib';
+import { CJS, Packet, NULL, ROOT } from './lib';
 import { FilterItem, FilterSet, Grouping } from './filters';
 import { FieldContainer } from './fieldContainer';
 import { buildFrontendOptions, FrontendOptions } from '../../options';
@@ -73,8 +73,8 @@ export class PacketStore {
    * Returns a new series of datasets (graph lines consisting of a label and
    * a series of x/y points).
    */
-  render(filters: FilterSet|undefined=undefined): Dataset[] {
-    const datasets: Dataset[] = [];
+  render(filters: FilterSet|undefined=undefined): CJS.Dataset[] {
+    const datasets: CJS.Dataset[] = [];
     
     if (filters === undefined) filters = new FilterSet(this);
     const groups = filters.getGroups();

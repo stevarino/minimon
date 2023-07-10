@@ -1,10 +1,4 @@
-import { Packet, PacketField, Payload, ROOT, NULL, Dataset } from './lib';
-import { View } from './view';
-import { PacketStore, Table, KNOWN_COLUMNS, TABLE_COLUMNS } from './packetStore';
-import { FilterType, FilterSet } from './filters';
-
-export { 
-  Packet, PacketField, Payload, ROOT, NULL, Dataset,
-  PacketStore, View, Table, KNOWN_COLUMNS, TABLE_COLUMNS,
-  FilterType, FilterSet
-};
+export { CJS, Packet, PacketField, Payload, ROOT, NULL, Dataset } from './lib';
+export { View } from './view';
+export { PacketStore, Table, KNOWN_COLUMNS, TABLE_COLUMNS } from './packetStore';
+export { FilterType, FilterSet } from './filters';

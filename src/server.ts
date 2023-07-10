@@ -19,9 +19,7 @@ export class Server {
   options: Options;
 
   constructor(options?: PartialOptions) {
-    const fileServer = serveStatic(path.resolve(__dirname, 'static'), {
-      index: ['index.html', 'index.htm']
-    });
+    const fileServer = serveStatic(path.resolve(__dirname, 'static'), { index: ['index.html'] });
     this.listeners = new Set<ServerResponse>();
     this.options = buildOptions(options ?? {});
 

@@ -1,3 +1,5 @@
+export * as CJS from '../chartJS'
+
 export const ROOT = 'Total';
 export const NULL = '␀';
 
