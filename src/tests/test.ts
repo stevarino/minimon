@@ -3,13 +3,13 @@ import *  as lib from '../lib';
 
 test('serialize', t => {
   const obj = {foo: [{a: 1}, {b: 2}]};
-  const arr = Array.from(lib.flatten(obj));
+  const arr = Array.from(lib.flattenSync(obj));
   t.deepEqual(arr, [['foo.0.a', '1'], ['foo.1.b', '2']]);
 });
 
 test('serialize-tuple', t => {
   const obj = {foo: {a: [0,1,2]}};
-  const str = Array.from(lib.flatten(obj));
+  const str = Array.from(lib.flattenSync(obj));
   t.deepEqual(str, [['foo.a', '[0,1,2]']]);
 });
 
@@ -20,10 +20,19 @@ test('serialize-stringify', t => {
   t.deepEqual(str, '{"foo.0.a":"1","foo.1.b":"2"}');
 });
 
-test('serlialize-filter', t => {
+test('serlialize-filter-sync', t => {
   const obj = {foo: { bar: 2, baz: 3}};
-  const arr = Array.from(lib.flatten(obj, ['foo.bar']));
-  t.deepEqual(arr, [['foo.baz', '3']]);
+  const arr = Array.from(lib.flattenSync(obj, ['foo.bar']));
+  t.deepEqual(arr, [['foo.bar', lib.NULL], ['foo.baz', '3']]);
+});
+
+test('serlialize-filter', async t => {
+  const obj = {foo: { bar: 2, baz: 3}};
+  const arr: string[][] = [];
+  for await (const field of lib.flatten(obj, ['foo.bar'])) {
+    arr.push(field);
+  }
+  t.deepEqual(arr, [['foo.bar', lib.NULL], ['foo.baz', '3']]);
 });
 
 test('inflateObject', t => {

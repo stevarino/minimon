@@ -58,30 +58,26 @@ class Key {
   }
 }
 
-/** Generates a series of [key: val] values from a flattened json object */
-export function* flatten(params: unknown, filters?: Array<string>) {
-  filters = filters || [];
+/** Takes an array of json-path like strings (dot-seperated) and reverses them. */
+function generateReversesFilters(filters?: Array<string>) {
   const revFilters: string[][] = [];
-  for (const f of filters) {
+  for (const f of filters ?? []) {
     const fa = f.split('.');
     fa.reverse();
     revFilters.push(fa);
   }
-
-  for (const [key, val] of flattenRecursive(new Key(), params, revFilters)) {
-    yield [key.toString(), val];
-  }
+  return revFilters;
 }
 
-function* flattenFilter(path: Key, key: string, val: unknown, filters: string[][]): Generator<[Key, string]> {
+/** Given a set of path-relative filters, returns the next set of filters or null if a bingo. */
+function filterPop(filters: string[][], key: string) {
   const newFilters = [];
   for (const filter of filters) {
     if (filter.length === 1 && (filter[0] == key || filter[0] === '*' || filter[0] === '**')) {
-      yield [path, NULL];
-      return;
+      return null;
     }
     const newFilter = filter.slice();
-    const last = newFilter.pop();
+    const last = newFilter.pop() as string;
     if (last === key || last === '*') newFilters.push(newFilter);
     if (last === '**') {
       newFilters.push(newFilter);
@@ -90,49 +86,110 @@ function* flattenFilter(path: Key, key: string, val: unknown, filters: string[][
       newFilters.push(recursiveFilter);
     }
   }
-  yield* flattenRecursive(path.createChild(key), val, newFilters);
+  return newFilters;
 }
 
-function* flattenRecursive(path: Key, target: unknown, filters: string[][]): Generator<[Key, string]> {
-  let i = 0;
-  if (Array.isArray(target)) {
-    for (const item of target) {
-      if (typeof(item) === 'number') {
-        // assuming this is a tuple
-        yield [path, JSON.stringify(target)];
-        return;
-      }
-      yield* flattenFilter(path, String(i++), item, filters);
-    }
+/** Generates a series of [key: val] values from a flattened json object */
+export async function* flatten(params: unknown, filters?: Array<string>) {
+  const generator = flattenRecursive(new Key(), params, generateReversesFilters(filters));
+  for await (const [key, val] of generator) {
+    yield [key.toString(), val];
+  }
+}
+
+/** Generates a series of [key: val] values from a flattened json object */
+export function* flattenSync(params: unknown, filters?: Array<string>) {
+  const generator = flattenRecursiveSync(new Key(), params, generateReversesFilters(filters));
+  for (const [key, val] of generator) {
+    yield [key.toString(), val];
+  }
+}
+
+/** Updates the path-relative filters, yields NULL on filtered item, and then continues */
+async function* flattenFilter(path: Key, key: string, val: unknown, filters: string[][]): AsyncGenerator<[Key, string]> {
+  const newFilters = filterPop(filters, key);
+  if (newFilters === null) {
+    yield [path.createChild(key), NULL];
     return;
   }
-  switch(typeof(target)) {
+  yield* await flattenRecursive(path.createChild(key), val, newFilters);
+}
+
+/** Updates the path-relative filters, yields NULL on filtered item, and then continues */
+function* flattenFilterSync(path: Key, key: string, val: unknown, filters: string[][]): Generator<[Key, string]> {
+  const newFilters = filterPop(filters, key);
+  if (newFilters === null) {
+    yield [path.createChild(key), NULL];
+    return;
+  }
+  yield* flattenRecursiveSync(path.createChild(key), val, newFilters);
+}
+
+/** Attempts to return a scalar value tuple, or null if a compound value */
+function getValue(path: Key, target: unknown): [type: string, tuple: [Key, string]|null] {
+  const targetType = Array.isArray(target) ? 'array' : typeof(target);
+
+  switch(targetType) {
+  case 'array':
+    for (const item of target as unknown[]) {
+      if (typeof(item) === 'number') {
+        // assuming a number[] tuple
+        return [targetType, [path, JSON.stringify(target)]];
+      }
+      return [targetType, null];
+    }
   case 'string':
-    yield [path, `"${target}"`];
-    break;
+    return [targetType, [path, `"${target}"`]];
   case 'number':
   case 'bigint':
   case 'boolean':
   case 'undefined':
-    yield [path, String(target)];
-    break;
+    return [targetType, [path, String(target)]];
   case 'object':
+    return [targetType, null]
+  default:
+    throw new Error('Unrecognized object type: ' + targetType);
+  }
+}
+
+/** Yields a [Key, value] pair or continues to iterate through the object. */
+async function* flattenRecursive(path: Key, target: unknown, filters: string[][]): AsyncGenerator<[Key, string]> {
+  const [objType, tuple] = getValue(path, target);
+  if (tuple !== null) {
+    yield tuple;
+  } else if (objType === 'array') {
+    let i = 0;
+    for (const item of target as unknown[]) {
+      yield* flattenFilter(path, String(i++), item, filters);
+    }
+  } else if (objType === 'object') {
     for (const [key, val] of Object.entries(target as object)) {
       yield* flattenFilter(path, key, val, filters);
     }
-    break;
-  default:
-    throw new Error('Unrecognized object type: ' + typeof(target));
+  }
+}
+
+/** Yields a [Key, value] pair or continues to iterate through the object. */
+function* flattenRecursiveSync(path: Key, target: unknown, filters: string[][]): Generator<[Key, string]> {
+  const [objType, tuple] = getValue(path, target);
+  if (tuple !== null) {
+    yield tuple;
+  } else if (objType === 'array') {
+    let i = 0;
+    for (const item of target as unknown[]) {
+      yield* flattenFilterSync(path, String(i++), item, filters);
+    }
+  } else if (objType === 'object') {
+    for (const [key, val] of Object.entries(target as object)) {
+      yield* flattenFilterSync(path, key, val, filters);
+    }
   }
 }
 
 /** Flatten a json object, without the outermost brackets. */
 export function* flattenBody(params: unknown, filters?: Array<string>) {
-  const gen = flatten(params, filters);
   let sep = '';
-  while (true) {
-    const { value, done } = gen.next();
-    if (done) break;
+  for (const value of flattenSync(params, filters)) {
     yield `${sep}"${value[0]}":${JSON.stringify(value[1])}`;
     sep = ',';
   }
@@ -143,16 +200,6 @@ export function* flattenString(params: unknown, filters?: Array<string>) {
   yield '{';
   yield* flattenBody(params, filters);
   yield '}';
-}
-
-/** Appends a length to the end of a stream of values. */
-export function* yieldWithSize(gen: Iterable<string>) {
-  let total = 0;
-  for (const str of gen) {
-    total += str.length;
-    yield str;
-  }
-  yield `,"_sz":${total}`;
 }
 
 /** Joins a sequence similar to str.join(), but returns it as an iterator */
@@ -394,7 +441,7 @@ export function createButton<T = object>(icon: string, title: string, onClick: (
   return el;
 }
 
-export function runDemo(publisher: (packet: object) => void) {
+export function runDemo(publisher: (packet: object) => Promise<void>) {
   class FlipFlop {
     frequency: number;
     offset: number;

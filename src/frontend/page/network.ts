@@ -135,7 +135,7 @@ eventSource.addEventListener('done', event => {
   const received = Object.keys(packet.payload).length;
   const expected = Number(event.data.slice(next));
   if (received !== expected) {
-    console.error(`Received ${received} items, expected ${expected} items - invalid packet`);
+    console.error(`Received ${received} items, expected ${expected} items - invalid packet`, packet);
     return;
   }
   delete inbox[id];

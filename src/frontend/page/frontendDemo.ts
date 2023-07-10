@@ -15,9 +15,9 @@ export class DemoEventSource extends EventTarget {
 }
 
 /** IS_DEMO = true if URL includes a demo query string (?demo) or on github pages */
-export const IS_DEMO = (
+export const IS_DEMO = (typeof window !== "undefined" && (
   new URLSearchParams(window.location.search).get('demo') !== null
-  || window.location.origin.endsWith('.github.io'));
+  || window.location.origin.endsWith('.github.io')));
 
 export function demoOptions() {
   return buildFrontendOptions({
@@ -46,12 +46,12 @@ export function demoEventSource() {
   console.info('Running in demo mode.');
   const eventSource = new DemoEventSource();
   let id = 0;
-  runDemo((packet) => {
+  runDemo(async (packet) => {
     const packetId = id++;
     const demo = eventSource as DemoEventSource;
     demo.emit('head', JSON.stringify( { id: packetId, ms: new Date().getTime() } ));
     let fieldCnt = 0;
-    for (const [key, val] of flatten(packet)) {
+    for await (const [key, val] of flatten(packet)) {
       fieldCnt += 1;
       demo.emit('body', `${packetId}:${key}:${val}`);
     }

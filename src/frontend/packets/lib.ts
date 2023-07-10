@@ -51,10 +51,10 @@ export class PacketField {
     if (this.isString) {
       return this.value;
     }
-    if (this.value === NULL) {
+    if (this.value === NULL || this.value === 'undefined') {
       return null;
     }
-    return JSON.parse(this.value) ?? null;
+    return JSON.parse(this.value);
   }
 }
 

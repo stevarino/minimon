@@ -63,7 +63,7 @@ export class Server {
     const headPacket = JSON.stringify(header);
     this.write('head', headPacket);
     size += headPacket.length;
-    for (const [key, val] of lib.flatten(packet, filters)) {
+    for await (const [key, val] of lib.flatten(packet, filters)) {
       fieldCnt += 1;
       if (val.length > (this.options.server.highFieldSizeWarn as number)) {
         warnings.push(`Long value length: ${key} / ${val.length}`);

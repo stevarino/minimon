@@ -8,7 +8,7 @@ import { runDemo } from '../lib';
 
 const server = new Server({server: {port: 8080}, frontend: demoOptions()});
 
-runDemo((packet) => server.jsonEvent(packet));
+runDemo(async (packet) => { server.jsonEvent(packet) });
 
 ['SIGINT', 'SIGQUIT', 'SIGTERM'].forEach(signal => {
   process.on(signal, function() {

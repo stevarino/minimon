@@ -1,4 +1,4 @@
-import { flatten } from './lib';
+import { flattenSync } from './lib';
 
 export type FrontendOptions = {
   /** How long to store packets (300,000ms or 5m) */
@@ -80,7 +80,7 @@ class DefaultSchema<T> {
     });
   }
 
-  apply(options?: any): T {
+  apply(options?: any) {
     const allPaths: string[] = [];
     for (const [optionPath, value] of this.defaults) {
       allPaths.push(optionPath);
@@ -104,15 +104,16 @@ class DefaultSchema<T> {
     }
     
     const notFound: string[] = [];
-    Array.from(flatten(options)).forEach(([key]) => {
-      // don't bother checking deep into options
+
+    for (const [key] of flattenSync(options)) {
       if (allPaths.some(p => key.startsWith(p + '.'))) {
-        return;
+        continue;
       }
       if (this.paths.indexOf(key) === -1) {
         notFound.push(key);
       }
-    });
+    }
+
     if (notFound.length > 0) {
       throw new Error(`Unrecognized option[s]: [${notFound.join(', ')}]`);
     }

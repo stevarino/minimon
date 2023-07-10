@@ -133,7 +133,7 @@ function showFiltersList(e: MouseEvent) {
   dd.style.top = String(bb.top);
   dd.style.minWidth = String(bb.width);
   dd.style.display = 'block';
-  dd.style.left = String(bb.right - dd.getBoundingClientRect().width);
+  dd.style.left = String(bb.left);
 }
 
 function dropdownClick(e: MouseEvent) {
