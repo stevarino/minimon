@@ -1,4 +1,4 @@
 
-const { Server, ServerOptions } = require('./dist/server');
+const { Server } = require('./dist/server');
 
-module.exports = { Server, ServerOptions };
+module.exports = { Server };
