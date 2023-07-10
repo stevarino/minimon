@@ -1,6 +1,6 @@
 {
   "name": "squiggly-lines",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "A minimal monitoring toolset designed for real time analysis of streaming data.",
   "keywords": [
     "monitoring"
