@@ -1,5 +1,5 @@
 import test from 'ava';
-import * as packets from '../frontend/packets';
+import * as packets from '../frontend/worker';
 import { buildFrontendOptions, FrontendOptions } from '../options';
 
 let _testPacketId = 0;

@@ -1,8 +1,8 @@
-import * as packets from '../packets';
+import * as packets from '../worker';
 import { inflateObject, formatBytes, querySelector, htmlElement, DefaultMap } from '../../lib';
 import { buttonCallbacks } from './panels';
 import { filtersFromField, filtersFromGrouping, filterWidget } from './filterWidget';
-import { STATE } from './common';
+import { STATE } from '../common/events';
 
 declare global {
   /** Packet references to prevent garbage collection */

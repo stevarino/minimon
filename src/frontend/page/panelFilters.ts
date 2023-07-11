@@ -1,7 +1,8 @@
-import * as packets from '../packets';
-import { querySelector, htmlText, htmlElement, createButton } from '../..//lib';
+import * as packets from '../worker';
+import { querySelector, htmlText, htmlElement, createButton } from '../../lib';
 import { changeState } from './state';
-import * as common from './common';
+import { State } from '../common/state',
+import * as events from '../common/events',
 
 function fieldAutocomplete() {
   querySelector('#field_wrapper').innerHTML = '<div id="field_placeholder"></div>';
@@ -36,9 +37,9 @@ querySelector('#filter_form').addEventListener('submit', e=> {
     return;
   }
   if ((e.submitter as HTMLButtonElement).value === 'Group By') {
-    changeState([new common.State(field.value, '*', '')], []);
+    changeState([new State(field.value, '*', '')], []);
   } else {
-    changeState([new common.State(
+    changeState([new State(
       field.value,
       querySelector<HTMLSelectElement>('#filter').value,
       querySelector<HTMLInputElement>('#value').value,
@@ -63,7 +64,7 @@ function createFilterListItem(ul: HTMLUListElement, field: string) {
   return li;
 }
 
-common.STATE.addListener((state) => {
+events.STATE.addListener((state) => {
   const ul = querySelector<HTMLUListElement>('#active_filters') as HTMLUListElement;
   Array.from(ul.childNodes).forEach(n => ul.removeChild(n));
   state.forEach(s => {
@@ -85,7 +86,7 @@ function addGroupItem(ul: HTMLUListElement, param: string) {
 
   li.append(createButton<{param: string}>('close', 'Remove Grouping', 
     (_, state) => {
-      changeState([], [new common.State(state.param, '*', '')]);
+      changeState([], [new State(state.param, '*', '')]);
     }, { param }));
 }
 
@@ -104,7 +105,7 @@ function addFilterItem(ul: HTMLUListElement, param: string, op: string, value: s
     htmlText(' '),
     createButton<{filter: [string, string, string]}>(
       'close', 'Remove Filter', (e, s) => {
-        changeState([], [new common.State(...s.filter)]);
+        changeState([], [new State(...s.filter)]);
       }, {filter: [param, op, value]}),
   );
 }

@@ -282,6 +282,21 @@ export function inflateObject<T = string>(obj: {[key: string]: T}) {
   return _check(output);
 }
 
+export function overwriteObject(obj: {[path: string]: unknown}, settings: {[path: string]: unknown}) {
+  for (const [path, val] of Object.entries(settings)) {
+    let target = obj;
+    const paths = path.split('.').reverse();
+    while (paths.length > 1) {
+      const part = paths.pop() as string;
+      if (target[part] === undefined) {
+        target[part] = {};
+      }
+      target = target[part] as {[path: string]: unknown};
+    }
+    target[paths[0]] = val;
+  }
+}
+
 /** Calls document.querySelector, raising an exception on not found. */
 export function querySelector<T extends HTMLElement = HTMLElement>(selector: string) {
   const el = document.querySelector<T>(selector);

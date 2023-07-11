@@ -1,6 +1,6 @@
 import test from 'ava';
-import { FilterSet, FilterType, PacketStore } from '../frontend/packets';
-import { State } from '../frontend/page/common';
+import { FilterSet, FilterType, PacketStore } from '../frontend/worker';
+import { State } from '../frontend/common/common';
 
 function getFilterSet() {
   return new FilterSet(new PacketStore());

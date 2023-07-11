@@ -1,61 +1,20 @@
-import { Chart } from '../chartJS';
+import { createChart } from '../common/chartJS';
 
-import { ROOT } from '../packets';
-import { View } from '../packets';
-import { Grouping } from '../packets/filters';
-import { htmlElement, querySelector } from '../../lib';
-import * as common from './common';
+import { ROOT } from '../worker';
+import { View } from '../worker';
+import { Grouping } from '../worker/filters';
+import { htmlElement, querySelector, overwriteObject } from '../../lib';
+import * as common from '../common/common';
 import { filtersFromGrouping, filtersFromParam, filterWidget } from './filterWidget';
-
-declare global {
-  var VIEW: View;
-}
 
 let CLICK_LOCK = false;
 let HOVER_LOCK = false;
 
 const legendParser = /(.*):\s+(\d+)\s*$/;
 
-const CHART = new Chart(querySelector<HTMLCanvasElement>('#chart'), {
-  type: 'line',
-  options: {
-    maintainAspectRatio: false,
-    parsing: false,
-    normalized: true,
-    animation: false,
-    onClick: () => { CLICK_LOCK = !CLICK_LOCK; },
-    interaction: {
-      mode: 'nearest',
-      intersect: false,
-      axis: 'xy',
-    },
-    scales: {
-      x: {
-        type: 'time',
-        // time: {
-        //   unit: 'minute',
-        // },
-      }
-    },
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        enabled: false,
-        external: tooltip,
-      },
-      colors: {
-        // TODO: expand color options, themes, etc.
-        // https://www.chartjs.org/docs/latest/general/colors.html#dynamic-datasets-at-runtime
-        forceOverride: true
-      }
-    }
-  },
-  data: {
-    labels: [],
-    datasets: [],
-  },
+const CHART = createChart(querySelector<HTMLCanvasElement>('#chart'), {
+  'options.onClick': () => { CLICK_LOCK = !CLICK_LOCK },
+  'options.plugins.tooltip': { enabled: false, external: tooltip },
 });
 
 window.VIEW = new View(CHART.data, (min: number, max: number) => {

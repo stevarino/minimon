@@ -1,5 +1,5 @@
 import { htmlElement, inflateObject, querySelector, yieldJoin, yieldMap } from '../../lib';
-import { PacketField, Payload } from '../packets';
+import { PacketField, Payload } from '../worker';
 
 interface ButtonCallback {
   [key: string]: (target: HTMLElement) => void;

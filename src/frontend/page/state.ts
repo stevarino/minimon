@@ -1,7 +1,8 @@
 import { regexEscape } from '../../lib';
 import { difference, intersection } from '../../setLib';
-import { FilterType } from '../packets/filters';
-import { State, OPTIONS, STATE } from './common';
+import { FilterType } from '../worker/filters';
+import { State } from '../common/state';
+import { OPTIONS, STATE } from '../common/events'
 
 const FILTER_TYPE_RE = FilterType.types.map(f => regexEscape(f.label)).join('|');
 const FILTER_RE = new RegExp(`^(.*?)(${FILTER_TYPE_RE}|\\*)(.*)$`);
