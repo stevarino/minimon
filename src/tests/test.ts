@@ -1,5 +1,5 @@
 import test from 'ava';
-import *  as lib from '../lib';
+import *  as lib from '../common/lib';
 
 test('serialize', t => {
   const obj = {foo: [{a: 1}, {b: 2}]};

@@ -2,9 +2,9 @@
 import { changeState, setState } from './state';
 import * as events from '../common/events';
 import * as state from '../common/state';
-import { createButton, htmlElement, querySelector } from '../../lib';
+import { createButton, htmlElement, querySelector } from '../common/lib';
 
-events.OPTIONS.addPageListener((options) => {
+events.OPTIONS.addListener((options) => {
   const favEl = querySelector('#favorites');
   favEl.innerHTML = '';
   options.favorites.forEach(f => {

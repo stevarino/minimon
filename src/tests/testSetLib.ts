@@ -1,5 +1,5 @@
 import test from 'ava';
-import * as setLib from '../setLib';
+import * as setLib from '../common/sets';
 
 test('union', t => {
   const a = new Set([1,2,3]);

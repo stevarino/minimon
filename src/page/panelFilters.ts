@@ -1,8 +1,17 @@
-import * as packets from '../worker';
-import { querySelector, htmlText, htmlElement, createButton } from '../../lib';
+import { querySelector, htmlText, htmlElement, createButton } from '../common/lib';
 import { changeState } from './state';
-import { State } from '../common/state',
-import * as events from '../common/events',
+import { State } from '../common/state';
+import { FilterType } from '../worker/filterTypes';
+import * as events from '../common/events';
+
+let searchCallback: ((results: string[]) => void)|undefined;
+events.FIELDS_RES.addListener((results) => {
+  if (searchCallback === undefined) {
+    console.error('searchCallback not initialized');
+    return;
+  };
+  searchCallback(results);
+})
 
 function fieldAutocomplete() {
   querySelector('#field_wrapper').innerHTML = '<div id="field_placeholder"></div>';
@@ -12,15 +21,8 @@ function fieldAutocomplete() {
     id: 'field',
     element: querySelector('#field_placeholder'),
     source: (query: string, callback: (results: string[]) => void) => {
-      const results: string[] = [];
-      const terms = query.split(' ');
-      for (const field of window.VIEW.getFields()) {
-        if (terms.every(t=> field.indexOf(t) !== -1)) {
-          results.push(field);
-          if (results.length === window.OPTIONS.searchResults) break;
-        }
-      }
-      callback(results);
+      searchCallback = callback;
+      events.FIELDS_REQ.emit(query);
     },
     // autoselect: true,
     displayMenu: 'overlay',
@@ -110,7 +112,7 @@ function addFilterItem(ul: HTMLUListElement, param: string, op: string, value: s
   );
 }
 
-packets.FilterType.forEach(filter => {
+FilterType.forEach(filter => {
   const option = document.createElement('option');
   option.innerText = filter.label;
   option.setAttribute('value', filter.label);

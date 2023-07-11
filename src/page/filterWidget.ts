@@ -1,4 +1,4 @@
-import { htmlElement, htmlText, querySelector } from '../../lib';
+import { htmlElement, htmlText, querySelector } from '../common/lib';
 import { State } from '../common/state';
 import { changeState } from './state';
 

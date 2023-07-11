@@ -2,8 +2,8 @@ const path = require('path');
 
 module.exports = {
   entry: {
-    page: './src/frontend/page/bundle.page.ts',
-    worker: './src/frontend/worker/bundle.worker.ts',
+    page: './src/page/bundle.page.ts',
+    worker: './src/worker/bundle.worker.ts',
   },
   module: {
     rules: [

@@ -1,4 +1,4 @@
-import { flattenSync } from './lib';
+import { flattenSync } from './common/lib';
 
 export type FrontendOptions = {
   /** How long to store packets (300,000ms or 5m) */

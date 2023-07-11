@@ -1,21 +1,35 @@
-import * as packets from '../worker';
-import { inflateObject, formatBytes, querySelector, htmlElement, DefaultMap } from '../../lib';
+import { DefaultMap, Table, TABLE_COLUMNS, KNOWN_COLUMNS } from '../common/types';
+import { formatBytes, querySelector, htmlElement } from '../common/lib';
 import { buttonCallbacks } from './panels';
 import { filtersFromField, filtersFromGrouping, filterWidget } from './filterWidget';
-import { STATE } from '../common/events';
+import * as events from '../common/events';
 
-declare global {
-  /** Packet references to prevent garbage collection */
-  var TABLE: packets.Table;
-}
-
-STATE.addListener(() => {
+events.STATE.addListener(() => {
   Object.entries({
     '#aggPanel': loadAggTable,
     '#packetPanel': loadPacketTable,
   }).forEach(([sel, callback]) => {
     if (querySelector(sel).style.display === 'block') callback();
   });
+});
+
+events.TABLE_PACKET_RES.addListener(table => {
+  loadTable('#packetPanel table', table)
+});
+
+events.TABLE_AGG_RES.addListener(table => {
+  loadTable('#aggPanel table', table);
+});
+
+events.PACKET_RES.addListener(([packetId, packet]) => {
+  console.log(packetId, packet);
+  if (packet === undefined) {
+    console.error('Unable to load packet: ', packetId);
+    return;
+  }
+  querySelector('#modal h1').innerText = `Packet ${packetId}`;
+  querySelector('#modal pre').innerText = packet;
+  querySelector<HTMLDialogElement>('#modal').showModal();
 });
 
 Object.assign(buttonCallbacks, {
@@ -33,21 +47,19 @@ Object.assign(buttonCallbacks, {
 });
 
 function loadAggTable() {
-  loadTable('#aggPanel table', window.VIEW.getAggregateTable());
+  events.TABLE_AGG_REQ.emit(null);
 }
 
 function loadPacketTable() {
   const limit = querySelector<HTMLSelectElement>('#table_cnt').value;
-  window.TABLE = window.VIEW.getPacketTable(Number(limit));
-
-  loadTable('#packetPanel table', window.TABLE);
+  events.TABLE_PACKET_REQ.emit(Number(limit));
 }
 
 /** Known column headings and associated help text */
 const headerTitles = new Map<string, string>([
-  [packets.TABLE_COLUMNS.ID, 'Unique Packet Identifier'],
-  [packets.TABLE_COLUMNS.SIZE, 'Approxmate Packet Size'],
-  [packets.TABLE_COLUMNS.COUNT, 'Count of packets']
+  [TABLE_COLUMNS.ID, 'Unique Packet Identifier'],
+  [TABLE_COLUMNS.SIZE, 'Approxmate Packet Size'],
+  [TABLE_COLUMNS.COUNT, 'Count of packets']
 ]);
 
 /** Get the "value" of a table cell for sorting purposes */
@@ -66,10 +78,11 @@ function comparer(idx: number, asc: boolean) {
         return v1.toString().localeCompare(v2);
       }
     }(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
-  };}
+  };
+}
 
 /** Given a selector and some data, build an HTML table */
-function loadTable(selector: string, data: packets.Table) {
+function loadTable(selector: string, data: Table) {
   const table = querySelector(selector);
   const headerMap = new Map<string, string>();
   table.querySelectorAll('th').forEach(th => {
@@ -81,7 +94,7 @@ function loadTable(selector: string, data: packets.Table) {
   const thead_tr = document.createElement('tr');
   /** Field to params[] */
   const fieldLookup = new DefaultMap<string, string[]>(() => []);
-  window.VIEW.getGroupMapping().forEach((fields, param) => {
+  data.groupMapping?.forEach((fields, param) => {
     fields.forEach(field => fieldLookup.getOrCreate(field).value.push(param));
   });
   table.append(thead_tr);
@@ -115,14 +128,13 @@ function loadTable(selector: string, data: packets.Table) {
     );
   });
 
-
   data.rows.forEach(row => {
     const tr = document.createElement('tr');
     /** param => field => value */
     const grouping: {[param: string]: {[field: string]: string}} = {};
     row.forEach((value, i) => {
       const field = data.headers[i];
-      if (packets.KNOWN_COLUMNS.indexOf(field) !== -1) {
+      if (KNOWN_COLUMNS.indexOf(field) !== -1) {
         return;
       }
       fieldLookup.get(field)?.forEach(param => {
@@ -133,29 +145,20 @@ function loadTable(selector: string, data: packets.Table) {
     row.forEach((value, i) => {
       const td = document.createElement('td');
       const field = data.headers[i];
-      if (field === packets.TABLE_COLUMNS.ID) {
+      if (field === TABLE_COLUMNS.ID) {
         const a = htmlElement('a', {
           href: '#', innerText: value, dataset: {id: value},
           onClick: (e) => {
             e.preventDefault();
             const packetId = Number((e.target as HTMLElement).dataset.id ?? '-1');
-            const packet = window.TABLE.packets.get(packetId);
-            if (packet === undefined) {
-              console.error('Unable to load packet: ', packetId);
-              return;
-            }
-            const inflated = inflateObject<packets.PacketField>(packet.payload);
-            const packetString = JSON.stringify(inflated, undefined, 2);
-            querySelector('#modal h1').innerText = `Packet ${packetId}`;
-            querySelector('#modal pre').innerText = packetString;
-            querySelector<HTMLDialogElement>('#modal').showModal();
+            events.PACKET_REQ.emit(packetId);
           }
         });
         td.appendChild(a);
-      } else if (field === packets.TABLE_COLUMNS.SIZE) {
+      } else if (field === TABLE_COLUMNS.SIZE) {
         td.innerText = formatBytes(Number(value));
         td.dataset.val = value;
-      } else if (field === packets.TABLE_COLUMNS.COUNT) {
+      } else if (field === TABLE_COLUMNS.COUNT) {
         td.append(filterWidget(value, filtersFromGrouping(grouping)));
       } else {
         td.append(
