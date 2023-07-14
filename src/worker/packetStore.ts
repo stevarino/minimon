@@ -159,7 +159,7 @@ export class PacketStore {
       rows.push([
         String(packet.header.id),
         String(packet.header.size),
-        ...fields.map(f => String(packet.payload[f] ?? NULL)),
+        ...fields.map(f => packet.payload[f].value),
       ]);
     }
     return {
