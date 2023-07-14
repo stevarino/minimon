@@ -1,44 +1,45 @@
-import { Packet, CJS } from './lib';
-import { FilterSet, FilterType } from './filters';
-import { PacketStore, Table } from './packetStore';
-import { FrontendOptions, buildFrontendOptions } from '../../options';
-import { State } from '../page/common';
+import { Packet, Dataset, Table, PacketField } from '../common/types';
+import { FilterSet } from './filters';
+import { FilterType } from './filterTypes';
+import { PacketStore } from './packetStore';
+import { FrontendOptions, buildFrontendOptions } from '../options';
+import { State } from '../common/state';
+import * as events from '../common/events';
+import { inflateObject, yieldJoin } from '../common/lib';
 
 /** Set of active filters and groups. */
 export class View {
   /** List of current filters (including groups) */
   filters: FilterSet;
   storage: PacketStore;
-  updateCallback: () => void;
   lastRefresh = 0;
   refreshInterval = 300;
 
   // the current view - mapping of time => (datafield => total)
-  chartData: CJS.ChartData;
+  datasets: Dataset[] = [];
   _currentTime = 0;
   options: FrontendOptions;
 
-  constructor(chartData: CJS.ChartData, updateCallback: (min: number, max: number) => void, options?: FrontendOptions) {
-    this.chartData = chartData;
+  /** Temporary holding spot for table packets, to prevent GC */
+  table: Table|undefined;
 
+  constructor(options?: FrontendOptions) {
     this.options = options ?? buildFrontendOptions({});
     this.storage = new PacketStore(this.options);
     this.filters = new FilterSet(this.storage);
 
-    this.updateCallback = () => updateCallback(
-      this._currentTime - this.options.duration - this.options._msPerBucket,
-      this._currentTime - this.options._msPerBucket);
+    // this.updateCallback = () => updateCallback(
+    //   this._currentTime - this.options.duration - this.options._msPerBucket,
+    //   this._currentTime - this.options._msPerBucket);
   }
 
   /** Generate a new series of datasets and merge it with the graph datasets */
   reindex() {
-    this.chartData.datasets.length = 0;
-    (this.chartData.labels as string[]).length = 0;
+    this.datasets.length = 0;
     const newData = this.storage.render(this.filters).forEach(ds => {
-      this.chartData.datasets.push(ds);
-      (this.chartData.labels as string[]).push(ds.label as string);
+      this.datasets.push(ds);
     });
-    this.updateCallback();
+    this.sendChartData(false);
   }
 
   /** Adds a grouping. */
@@ -81,14 +82,14 @@ export class View {
     this.reindex();
   }
 
-  /** Garbage collect chartData (and then reaquest storage to do so also) */
+  /** Garbage collect datasets (and then reaquest storage to do so also) */
   trim(now: number) {
     const ms = now - this.options.duration - 2 * this.options._msPerBucket;
-    for (const dataset of this.chartData.datasets) {
+    for (const dataset of this.datasets) {
       let i = 0;
       for (const pt of dataset.data) {
         i += 1;
-        if ((pt as CJS.Point).x >= ms) break;
+        if (pt[0] >= ms) break;
       }
       dataset.data.splice(0, i - 1);
     }
@@ -116,37 +117,66 @@ export class View {
 
     const label = this.filters.getPacketGroupingString(packet);
     let found = false;
-    for (const dataset of this.chartData.datasets) {
+    for (const dataset of this.datasets) {
       if (dataset.label == label) {
         found = true;
-        if (dataset.data.length > 0 && (dataset.data[dataset.data.length - 1] as CJS.Point).x == bucket) {
-          (dataset.data[dataset.data.length - 1] as CJS.Point).y += 1;
+        if (dataset.data.length > 0 && dataset.data[dataset.data.length - 1][0] == bucket) {
+          dataset.data[dataset.data.length - 1][1] += 1;
         } else {
-          dataset.data.push({ x: bucket, y: 1 });
+          dataset.data.push([bucket, 1]);
         }
         break;
       }
     }
 
     if (found === false) {
-      this.chartData.datasets.push({ label, data: [{ x: bucket, y: 1 }], });
-      (this.chartData.labels as string[]).push(label);
-      this.refresh(now);
-    } else {
-      this.maybeRefresh(now);
+      this.datasets.push({ label, data: [[bucket, 1 ]], });
     }
+    this.maybeRefresh(now);
   }
 
-  refresh(now: number) {
-    this.lastRefresh = now;
-    this.updateCallback();
+  sendChartData(isPartial: boolean) {
+    const datasets: [string, [number, number][]][] = [];
+    for (const ds of this.datasets) {
+      const pts: [number, number][] = [];
+      datasets.push([ds.label as string, pts]);
+      if (isPartial) {
+        const start = Math.max(0, ds.data.length - 2);
+        for (var i=start; i < ds.data.length; i++) {
+          let pt = ds.data[i];
+          pts.push(ds.data[i]);
+        }
+      } else {
+        pts.push(...ds.data);
+      }
+    }
+    events.CHART_DATA.emit({
+      startTime: this._currentTime - this.options.duration - this.options._msPerBucket,
+      endTime: this._currentTime - this.options._msPerBucket,
+      isPartial,
+      datasets
+    });
   }
 
   /** Send an update to the graph if its been long enough. */
   maybeRefresh(now: number) {
     if (now - this.lastRefresh > this.refreshInterval) {
-      this.refresh(now);
+      this.lastRefresh = now;
+      this.sendChartData(true);
     }
+  }
+
+  findFields(searchTerm: string) {
+    const results: string[] = [];
+    const terms = searchTerm.split(' ');
+
+    for (const field of this.getFields()) {
+      if (terms.every(t=> field.indexOf(t) !== -1)) {
+        results.push(field);
+        if (results.length === this.options.searchResults) break;
+      }
+    }
+    return results;
   }
 
   /** Returns observed fields. */
@@ -168,7 +198,7 @@ export class View {
     return this.filters.getItems();
   }
 
-  *getPackets() {
+  *getFilteredPayloads() {
     for (const packet of this.storage.packets) {
       if (!this.filters.isFiltered(packet)) {
         yield packet.payload;
@@ -176,12 +206,40 @@ export class View {
     }
   }
 
+  getPayload(packetId: number) {
+    let packet = this.storage.packetIds.get(packetId) ?? this.table?.packets?.get(packetId);
+    if (packet !== undefined) {
+      const inflated = inflateObject<PacketField>(packet.payload);
+      const packetString = JSON.stringify(inflated, undefined, 2);
+      return packetString;
+    }
+    return undefined;
+  }
+
+  /** Returns a string json-array of filtered packet payloads  */
+  getPayloads() {
+    const buffer = [];
+    for (const packet of this.storage.packets) {
+      if (!this.filters.isFiltered(packet)) {
+        buffer.push(JSON.stringify(inflateObject<PacketField>(packet.payload)));
+      }
+    }
+    // TODO: evaluate if ArrayBuffer would be more performant/needed
+    return `[${buffer.join(',')}]`;
+  }
+
   getAggregateTable(): Table {
-    return this.storage.tabulateAggregate(this.filters);
+    const table = this.storage.tabulateAggregate(this.filters);
+    table.groupMapping = this.getGroupMapping();
+    return table;
   }
 
   getPacketTable(limit: number): Table {
-    return this.storage.tabulateUnaggregated(this.filters, limit);
+    const table = this.storage.tabulateUnaggregated(this.filters, limit);
+    table.groupMapping = this.getGroupMapping();
+    this.table = Object.assign({}, table);
+    table.packets = undefined;
+    return table;
   }
 
   setOptions(options: FrontendOptions) {

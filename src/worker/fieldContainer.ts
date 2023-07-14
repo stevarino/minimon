@@ -1,9 +1,9 @@
 /**
  * A packet-specific implementation of a Trie.
  */
-import { Packet } from './lib';
+import { Packet } from '../common/types';
 import { FilterItem, FilterSet } from './filters';
-import { FrontendOptions } from '../../options';
+import { FrontendOptions } from '../options';
 import { TrieRoot,Trie } from './trie';
 
 /** Contains a mapping from fields to packets within a Trie */
@@ -34,12 +34,16 @@ export class FieldContainer extends TrieRoot<number> {
 
   /** Add fields from a packet to the trie, and associated trie nodes with filters */
   addPacket(packet: Packet, filters: FilterSet) {
-    Object.keys(packet.payload).forEach(field => {
-      const trie = this.addNode(field, (tempRoot) => {
-        this.linkFieldToFilter(tempRoot, filters);
-      });
-      trie.values.add(packet.header.id);
-    });
+    const promises: Promise<unknown>[] = [];
+    for (const field of Object.keys(packet.payload)) {
+      promises.push(new Promise(() => {
+        const trie = this.addNode(field, (tempRoot) => {
+          this.linkFieldToFilter(tempRoot, filters);
+        });
+        trie.values.add(packet.header.id);
+      }));
+    };
+    return promises;
   }
 
   /** Apply a filter to the trie, associating the results */

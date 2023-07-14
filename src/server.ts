@@ -2,7 +2,7 @@ import { hrtime } from 'node:process';
 import { IncomingMessage, ServerResponse, createServer } from 'node:http';
 import * as path from 'node:path';
 
-import * as lib from './lib';
+import * as lib from './common/lib';
 import { Options, PartialOptions, buildOptions } from './options';
 
 const serveStatic = require('serve-static');

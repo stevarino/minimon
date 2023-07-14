@@ -1,4 +1,5 @@
 import * as ChartJS from 'chart.js';
+import { overwriteObject } from './lib';
 
 // https://www.chartjs.org/docs/4.3.0/getting-started/integration.html#bundle-optimization
 ChartJS.Chart.register(
@@ -136,3 +137,45 @@ ChartJS._adapters._date.override(dateFnsAdapter);
 
 export type Dataset = ChartJS.ChartDataset<"line", (number|ChartJS.Point)[]>;
 export { Chart, ChartData, Point }  from 'chart.js';
+
+export function createChart(el: HTMLCanvasElement, overrides?: {[path: string]: unknown}): ChartJS.Chart {
+  const options = {
+    type: 'line',
+    options: {
+      maintainAspectRatio: false,
+      parsing: false,
+      normalized: true,
+      animation: false,
+      interaction: {
+        mode: 'nearest',
+        intersect: false,
+        axis: 'xy',
+      },
+      scales: {
+        x: {
+          type: 'time',
+          // time: {
+          //   unit: 'minute',
+          // },
+        }
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+        colors: {
+          // TODO: expand color options, themes, etc.
+          // https://www.chartjs.org/docs/latest/general/colors.html#dynamic-datasets-at-runtime
+          forceOverride: true
+        }
+      }
+    },
+    data: {
+      datasets: [],
+    },
+  };
+
+  overwriteObject(options, overrides ?? {});
+  // @ts-ignore
+  return new ChartJS.Chart(el, options);
+}

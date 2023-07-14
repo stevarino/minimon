@@ -1,72 +1,74 @@
-import { Chart } from '../chartJS';
+import { createChart, Point } from '../common/chartJS';
 
-import { ROOT } from '../packets';
-import { View } from '../packets';
-import { Grouping } from '../packets/filters';
-import { htmlElement, querySelector } from '../../lib';
-import * as common from './common';
+import { ROOT, Grouping } from '../common/types';
+import { htmlElement, querySelector } from '../common/lib';
+import * as events from '../common/events';
 import { filtersFromGrouping, filtersFromParam, filterWidget } from './filterWidget';
-
-declare global {
-  var VIEW: View;
-}
 
 let CLICK_LOCK = false;
 let HOVER_LOCK = false;
 
 const legendParser = /(.*):\s+(\d+)\s*$/;
 
-const CHART = new Chart(querySelector<HTMLCanvasElement>('#chart'), {
-  type: 'line',
-  options: {
-    maintainAspectRatio: false,
-    parsing: false,
-    normalized: true,
-    animation: false,
-    onClick: () => { CLICK_LOCK = !CLICK_LOCK; },
-    interaction: {
-      mode: 'nearest',
-      intersect: false,
-      axis: 'xy',
-    },
-    scales: {
-      x: {
-        type: 'time',
-        // time: {
-        //   unit: 'minute',
-        // },
-      }
-    },
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        enabled: false,
-        external: tooltip,
-      },
-      colors: {
-        // TODO: expand color options, themes, etc.
-        // https://www.chartjs.org/docs/latest/general/colors.html#dynamic-datasets-at-runtime
-        forceOverride: true
-      }
-    }
-  },
-  data: {
-    labels: [],
-    datasets: [],
-  },
+const CHART = createChart(querySelector<HTMLCanvasElement>('#chart'), {
+  'options.onClick': () => { CLICK_LOCK = !CLICK_LOCK },
+  'options.plugins.tooltip': { enabled: false, external: tooltip },
 });
 
-window.VIEW = new View(CHART.data, (min: number, max: number) => {
-  if (CHART.options.scales?.x !== undefined) {
-    CHART.options.scales.x.min = min;
-    CHART.options.scales.x.max = max;
+events.CHART_DATA.addListener(data => {
+  if (CHART.options?.scales?.x !== undefined) {
+    CHART.options.scales.x.min = data.startTime;
+    CHART.options.scales.x.max = data.endTime;
+  }
+
+  const updates = new Map(data.datasets);
+  if (data.isPartial) {
+    const current = new Set<string>();
+
+    for (const ds of CHART.data.datasets) {
+      if (ds.label === undefined) continue;  // shouldn't happen
+      current.add(ds.label);
+      const dsUpdate = updates.get(ds.label);
+
+      // merge dataset with update
+      if (dsUpdate !== undefined) {
+        const head = (ds.data[ds.data.length - 1] as Point).x;
+        for (const [x, y] of dsUpdate) {
+          if (x < head) continue;
+          if (x === head) {
+            (ds.data[ds.data.length - 1] as Point).y = y;
+          } else {
+            ds.data.push({ x, y });
+          }
+        }
+      }
+
+      // trim dataset
+      let i = 0;
+      for (i=0; i<ds.data.length; i++) {
+        if ((ds.data[i] as Point).x >= data.startTime) break;
+      }
+      if (i > 0) ds.data = ds.data.slice(i);
+    }
+    for (const [update, pts] of updates) {
+      if (current.has(update)) continue;
+      CHART.data.datasets.push({
+        label: update,
+        data: pts.map(([x, y]) => { return { x, y }; })
+      })
+    }
+  } else {
+    // full chart update
+    CHART.data.datasets.length = 0;
+    for (const [update, pts] of updates) {
+      CHART.data.datasets.push({
+        label: update,
+        data: pts.map(([x, y]) => { return { x, y }; }),
+      });
+    }
   }
   CHART.update();
 });
-
-common.STATE.addListener((s) => window.VIEW.mergeFilterState(s));
 
 // https://www.chartjs.org/docs/latest/configuration/tooltip.html#external-custom-tooltips
 function tooltip(context: any) {

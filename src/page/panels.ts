@@ -1,9 +1,21 @@
-import { htmlElement, inflateObject, querySelector, yieldJoin, yieldMap } from '../../lib';
-import { PacketField, Payload } from '../packets';
+import { htmlElement, inflateObject, querySelector, yieldJoin, yieldMap } from '../common/lib';
+import { PacketField, Payload } from '../common/types';
+import * as events from '../common/events';
 
 interface ButtonCallback {
   [key: string]: (target: HTMLElement) => void;
 }
+
+events.PACKETS_RES.addListener(payloads => {
+  const blob = new Blob([payloads], { type: 'application/json' });
+  const href = window.URL.createObjectURL(blob);
+  const el = htmlElement('a', { href, download: 'data.json' }) as HTMLAnchorElement;
+  document.body.appendChild(el);
+  el.click();
+  console.log('clicked');
+  document.body.removeChild(el);
+  window.URL.revokeObjectURL(href);
+});
 
 function showPanel(id: string) {
   const div = querySelector('#' + id);
@@ -78,16 +90,7 @@ function showSidebar() {
 export const buttonCallbacks: ButtonCallback = {  
   hideSidebar,
   download: () => {
-    const data = ['[', ...yieldJoin(yieldMap<Payload, string>(
-      window.VIEW.getPackets(), (payload) => JSON.stringify(
-        inflateObject<PacketField>(payload))
-    ), ','), ']'];
-    const blob = new Blob(data, { type: 'application/json' });
-    const href = window.URL.createObjectURL(blob);
-    const el = htmlElement('a', { href, download: 'data.json' }) as HTMLAnchorElement;
-    document.body.appendChild(el);
-    el.click();
-    document.body.removeChild(el);
-    window.URL.revokeObjectURL(href);
+    console.log('dl clicked')
+    events.PACKETS_REQ.emit(null);
   }
 };

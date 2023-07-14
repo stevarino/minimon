@@ -1,7 +1,17 @@
-import * as packets from '../packets';
-import { querySelector, htmlText, htmlElement, createButton } from '../..//lib';
+import { querySelector, htmlText, htmlElement, createButton } from '../common/lib';
 import { changeState } from './state';
-import * as common from './common';
+import { State } from '../common/state';
+import { FilterType } from '../worker/filterTypes';
+import * as events from '../common/events';
+
+let searchCallback: ((results: string[]) => void)|undefined;
+events.FIELDS_RES.addListener((results) => {
+  if (searchCallback === undefined) {
+    console.error('searchCallback not initialized');
+    return;
+  };
+  searchCallback(results);
+})
 
 function fieldAutocomplete() {
   querySelector('#field_wrapper').innerHTML = '<div id="field_placeholder"></div>';
@@ -11,15 +21,8 @@ function fieldAutocomplete() {
     id: 'field',
     element: querySelector('#field_placeholder'),
     source: (query: string, callback: (results: string[]) => void) => {
-      const results: string[] = [];
-      const terms = query.split(' ');
-      for (const field of window.VIEW.getFields()) {
-        if (terms.every(t=> field.indexOf(t) !== -1)) {
-          results.push(field);
-          if (results.length === window.OPTIONS.searchResults) break;
-        }
-      }
-      callback(results);
+      searchCallback = callback;
+      events.FIELDS_REQ.emit(query);
     },
     // autoselect: true,
     displayMenu: 'overlay',
@@ -36,9 +39,9 @@ querySelector('#filter_form').addEventListener('submit', e=> {
     return;
   }
   if ((e.submitter as HTMLButtonElement).value === 'Group By') {
-    changeState([new common.State(field.value, '*', '')], []);
+    changeState([new State(field.value, '*', '')], []);
   } else {
-    changeState([new common.State(
+    changeState([new State(
       field.value,
       querySelector<HTMLSelectElement>('#filter').value,
       querySelector<HTMLInputElement>('#value').value,
@@ -63,7 +66,7 @@ function createFilterListItem(ul: HTMLUListElement, field: string) {
   return li;
 }
 
-common.STATE.addListener((state) => {
+events.STATE.addListener((state) => {
   const ul = querySelector<HTMLUListElement>('#active_filters') as HTMLUListElement;
   Array.from(ul.childNodes).forEach(n => ul.removeChild(n));
   state.forEach(s => {
@@ -85,7 +88,7 @@ function addGroupItem(ul: HTMLUListElement, param: string) {
 
   li.append(createButton<{param: string}>('close', 'Remove Grouping', 
     (_, state) => {
-      changeState([], [new common.State(state.param, '*', '')]);
+      changeState([], [new State(state.param, '*', '')]);
     }, { param }));
 }
 
@@ -104,12 +107,12 @@ function addFilterItem(ul: HTMLUListElement, param: string, op: string, value: s
     htmlText(' '),
     createButton<{filter: [string, string, string]}>(
       'close', 'Remove Filter', (e, s) => {
-        changeState([], [new common.State(...s.filter)]);
+        changeState([], [new State(...s.filter)]);
       }, {filter: [param, op, value]}),
   );
 }
 
-packets.FilterType.forEach(filter => {
+FilterType.forEach(filter => {
   const option = document.createElement('option');
   option.innerText = filter.label;
   option.setAttribute('value', filter.label);

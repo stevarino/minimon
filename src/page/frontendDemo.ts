@@ -1,5 +1,5 @@
-import { flatten, runDemo } from '../../lib';
-import { buildFrontendOptions } from '../../options';
+import { flatten, runDemo } from '../common/lib';
+import { buildFrontendOptions } from '../options';
 
 /** Dummy event source for serverless demos */
 export class DemoEventSource extends EventTarget {

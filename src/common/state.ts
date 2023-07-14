@@ -1,8 +1,7 @@
-import { EventEmitter } from 'events';
-import { regexEscape } from '../../lib';
-import { FrontendOptions } from '../../options';
-
 /** State is used to describe the union of filters and grouping */
+
+import { regexEscape } from './lib';
+
 export class State {
   param: string;
   op: string;
@@ -46,20 +45,3 @@ export class State {
     return states.map(s => new State(...s));
   }
 }
-
-export const emitter = new EventEmitter();
-
-function emitterSetup<T>(signal: string) {
-  return {
-    emit: (arg: T) => {
-      emitter.emit(signal, arg);
-    },
-    addListener: (callback: (data: T) => void) => {
-      emitter.addListener(signal, callback);
-    }
-  };
-}
-
-export const STATE = emitterSetup<State[]>('state');
-export const OPTIONS = emitterSetup<FrontendOptions>('options');
-

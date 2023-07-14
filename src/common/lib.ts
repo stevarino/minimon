@@ -1,47 +1,5 @@
 export const NULL = '␀'
 
-/** A Map object with a preset default (enable with getOrCreate) */
-export class DefaultMap<K, V> extends Map<K,V> {
-  callback: (arg?: any) => V;
-
-  constructor(callback: (arg?: any) => V, iterable?: Iterable<readonly [K, V]> | null | undefined) {
-    super(iterable);
-    this.callback = callback;
-  }
-
-  getOrCreate(key: K) {
-    let created = false;
-    let value: V|undefined = super.get(key);
-    if (value === undefined) {
-      created = true;
-      value = this.callback();
-      this.set(key, value);
-    }
-    return { value, created };
-  }
-}
-
-/** A Map object with a preset default (enable with getOrCreate) */
-export class DefaultWeakMap<K extends object, V> extends WeakMap<K,V> {
-  callback: (arg?: any) => V;
-
-  constructor(callback: (arg?: any) => V, entries?: readonly [K, V][] | null | undefined) {
-    super(entries);
-    this.callback = callback;
-  }
-
-  getOrCreate(key: K) {
-    let created = false;
-    let value: V|undefined = super.get(key);
-    if (value === undefined) {
-      created = true;
-      value = this.callback();
-      this.set(key, value);
-    }
-    return { value, created };
-  }
-}
-
 /** An object field's key, represented by parts. */
 class Key {
   parts: Array<string>;
@@ -282,6 +240,21 @@ export function inflateObject<T = string>(obj: {[key: string]: T}) {
   return _check(output);
 }
 
+export function overwriteObject(obj: {[path: string]: unknown}, settings: {[path: string]: unknown}) {
+  for (const [path, val] of Object.entries(settings)) {
+    let target = obj;
+    const paths = path.split('.').reverse();
+    while (paths.length > 1) {
+      const part = paths.pop() as string;
+      if (target[part] === undefined) {
+        target[part] = {};
+      }
+      target = target[part] as {[path: string]: unknown};
+    }
+    target[paths[0]] = val;
+  }
+}
+
 /** Calls document.querySelector, raising an exception on not found. */
 export function querySelector<T extends HTMLElement = HTMLElement>(selector: string) {
   const el = document.querySelector<T>(selector);
@@ -298,50 +271,6 @@ export function formatBytes(bytes: number, decimals = 2) {
   const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-}
-
-/** Two way, one-to-one mapping */
-export class BiMap<T, U> extends Map<T, U> {
-  reverse: Map<U, T>;
-  constructor(iterable?: Iterable<readonly [T, U]> | null | undefined) {
-    const items = Array.from(iterable ?? []);
-    super(items);
-    this.reverse = new Map<U, T>(items.map(([t, u]) => [u, t]));
-  }
-
-  set(key: T, value: U) {
-    this.reverse.set(value, key);
-    return super.set(key, value);
-  }
-
-  getReverse(key: U) {
-    return this.reverse.get(key);
-  }
-
-  hasReverse(key: U) {
-    return this.reverse.has(key);
-  }
-
-  clear() {
-    this.reverse.clear();
-    super.clear();
-  }
-
-  delete(key: T) {
-    const val = this.get(key);
-    if (val !== undefined) {
-      this.reverse.delete(val);
-    }
-    return super.delete(key);
-  }
-
-  deleteReverse(key: U) {
-    const val = this.reverse.get(key);
-    if (val !== undefined) {
-      super.delete(val);
-    }
-    return this.reverse.delete(key);
-  }
 }
 
 /** Builds a regex-escape function, skipping provided characters */

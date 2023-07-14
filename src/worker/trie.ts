@@ -3,8 +3,8 @@
  * wildcards, allowing for many-to-one mappings.
  */
 
-import * as setLib from '../../setLib';
-import { BiMap } from '../../lib';
+import * as setLib from '../common/sets';
+import { BiMap } from '../common/types';
 import { BSTRoot } from './bst';
 
 const numberPattern =  /^\d+$/;
@@ -187,9 +187,11 @@ export class TrieRoot<T> extends Trie<T> {
   /** convert a path to a normalized path */
   normalizePath(path: string[]) {
     if (this.options.collapseArrays) {
-      path.forEach((val, i) => {
-        if (numberPattern.test(val)) path[i] = '*';
-      });
+      for (let i=0; i<path.length; i++) {
+        if (numberPattern.test(path[i])) {
+          path[i] = '*';
+        }
+      }
     }
   }
 

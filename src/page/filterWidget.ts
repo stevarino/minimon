@@ -1,5 +1,5 @@
-import { htmlElement, htmlText, querySelector } from '../../lib';
-import { State } from './common';
+import { htmlElement, htmlText, querySelector } from '../common/lib';
+import { State } from '../common/state';
 import { changeState } from './state';
 
 /** Reference for all dropdowns currently rendered */

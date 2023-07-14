@@ -1,7 +1,8 @@
-import { regexEscape } from '../../lib';
-import { difference, intersection } from '../../setLib';
-import { FilterType } from '../packets/filters';
-import { State, OPTIONS, STATE } from './common';
+import { regexEscape } from '../common/lib';
+import { difference, intersection } from '../common/sets';
+import { FilterType } from '../worker/filterTypes';
+import { State } from '../common/state';
+import * as events from '../common/events'
 
 const FILTER_TYPE_RE = FilterType.types.map(f => regexEscape(f.label)).join('|');
 const FILTER_RE = new RegExp(`^(.*?)(${FILTER_TYPE_RE}|\\*)(.*)$`);
@@ -28,7 +29,7 @@ export class StateManager {
 
   constructor(historyObj?: History, initialState?: string) {
     this.historyObj = historyObj ?? history;
-    OPTIONS.addListener(() => {
+    events.OPTIONS.addListener(() => {
       console.info('Initializing state from URL');
       this.updateFromHash(initialState ?? window.location.hash);
     });
@@ -113,7 +114,7 @@ export class StateManager {
 
   /** Send new state to clients */
   updateListeners() {
-    STATE.emit(this.state);
+    events.STATE.emit(this.state);
   }
 }
 

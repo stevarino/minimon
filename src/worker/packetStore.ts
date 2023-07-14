@@ -1,22 +1,8 @@
 
-import { DefaultMap } from '../../lib';
-import { CJS, Packet, NULL, ROOT } from './lib';
-import { FilterItem, FilterSet, Grouping } from './filters';
+import { DefaultMap, Packet, Dataset, NULL, ROOT, Table, TABLE_COLUMNS, Grouping } from '../common/types';
+import { FilterItem, FilterSet } from './filters';
 import { FieldContainer } from './fieldContainer';
-import { buildFrontendOptions, FrontendOptions } from '../../options';
-
-export interface Table {
-  headers: string[];
-  rows: string[][];
-  packets: Map<number, Packet>;
-}
-
-export enum TABLE_COLUMNS {
-  ID = 'id',
-  COUNT = '_cnt',
-  SIZE = '_sz',
-}
-export const KNOWN_COLUMNS = Object.values(TABLE_COLUMNS).map(c => String(c));
+import { buildFrontendOptions, FrontendOptions } from '../options';
 
 /**
  * Interface for packet data, provides bulk rendering and management functions.
@@ -73,8 +59,8 @@ export class PacketStore {
    * Returns a new series of datasets (graph lines consisting of a label and
    * a series of x/y points).
    */
-  render(filters: FilterSet|undefined=undefined): CJS.Dataset[] {
-    const datasets: CJS.Dataset[] = [];
+  render(filters: FilterSet|undefined=undefined): Dataset[] {
+    const datasets: Dataset[] = [];
     
     if (filters === undefined) filters = new FilterSet(this);
     const groups = filters.getGroups();
@@ -90,10 +76,8 @@ export class PacketStore {
     }
 
     for (const [label, pts] of datasetMap) {
-      const data: { x:number, y:number }[] = [];
-      pts.forEach((y, x) => {
-        data.push({ x, y });
-      });
+      const data: [ x:number, y:number ][] = [];
+      data.push(...pts);
       datasets.push({ label, data });
     }
     return datasets;
