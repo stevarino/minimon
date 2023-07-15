@@ -3,8 +3,8 @@ import { View } from '../worker/view';
 import { PacketStore } from '../worker/packetStore';
 import { FilterSet } from '../worker/filters';
 import { FilterType } from '../worker/filterTypes';
-import { Dataset, Packet, PacketField, NULL  } from '../common/types';
-import { buildFrontendOptions, FrontendOptions } from '../options';
+import { Packet, PacketField, NULL  } from '../common/types';
+import { buildFrontendOptions } from '../options';
 
 let _testPacketId = 0;
 function getTestPacket(
@@ -28,10 +28,6 @@ function getTestPacket(
   return packet;
 }
 
-function getView(dataset: Dataset[], callback?: any, options?: FrontendOptions) {
-  return new View();
-}
-
 // https://www.compart.com/en/unicode/U+2400
 const NULL_UTF8 = '%E2%90%80';
 
@@ -40,7 +36,7 @@ test('IndexRender', t => {
   const filters = new FilterSet(store);
   store.addPacket(getTestPacket({}, {foo: 'bar'}), filters);
   const view = store.render();
-  t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 1}]}]);
+  t.deepEqual(view, [{ label: 'Total', data: [[1000, 1]]}]);
 });
 
 test('IndexGroups', t => {
@@ -52,8 +48,8 @@ test('IndexGroups', t => {
   filters.addGroup('foo');
   const view = store.render(filters);
   t.deepEqual(view, [
-    {label: '{"foo":{"foo":"bar"}}', data: [{x: 1000, y: 2}]},
-    {label: '{"foo":{"foo":"baz"}}', data: [{x: 1000, y: 1}]},
+    {label: '{"foo":{"foo":"bar"}}', data: [[1000, 2]]},
+    {label: '{"foo":{"foo":"baz"}}', data: [[1000, 1]]},
   ]);
 });
 
@@ -88,7 +84,7 @@ test('IndexFilterEqual', t => {
   index.addPacket(getTestPacket({}, { foo: 'bar',}), filters);
   filters.addFilter('foo', FilterType.get('=='), 'bar');
   const view = index.render(filters);
-  t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 2}]}]);
+  t.deepEqual(view, [{ label: 'Total', data: [[1000, 2]]}]);
 });
 
 test('IndexFilterNotEqual', t => {
@@ -99,43 +95,40 @@ test('IndexFilterNotEqual', t => {
   index.addPacket(getTestPacket({}, { foo: 'bar',}), filters);
   filters.addFilter('foo', FilterType.get('!='), 'bar');
   const view = index.render(filters);
-  t.deepEqual(view, [{ label: 'Total', data: [{x: 1000, y: 1}]}]);
+  t.deepEqual(view, [{ label: 'Total', data: [[1000, 1]]}]);
 });
 
 test('ViewPacket', t => {
-  const dataset: Dataset[] = [];
-  const view = getView(dataset);
+  const view = new View();
   view.addPacket(getTestPacket({}, {}), 1);
-  t.is(dataset.length, 1);
+  t.is(view.datasets.length, 1);
   view.addPacket(getTestPacket({}, { _dir: 'awesome'}), 1);
-  t.is(dataset.length, 1);
+  t.is(view.datasets.length, 1);
 });
 
 test('ViewGroup', t => {
-  const dataset: Dataset[] = [];
-  const view = getView(dataset);
+  const view = new View();
   view.addPacket(getTestPacket({}, { foo: 'bar'}), 1);
   view.addPacket(getTestPacket({}, { foo: 'baz'}), 1);
-  t.is(dataset.length, 1, JSON.stringify(dataset));
-  t.is(dataset[0].data[0][1], 2, JSON.stringify(dataset));
+  t.is(view.datasets.length, 1, JSON.stringify(view.datasets));
+  t.is(view.datasets[0].data[0][1], 2, JSON.stringify(view.datasets));
   view.addGroup('foo');
-  t.is(dataset.length, 2, JSON.stringify(dataset));
-  t.is(dataset[0].data[0][1], 1, JSON.stringify(dataset));
+  t.is(view.datasets.length, 2, JSON.stringify(view.datasets));
+  t.is(view.datasets[0].data[0][1], 1, JSON.stringify(view.datasets));
   view.removeGroup('foo');
-  t.is(dataset.length, 1, JSON.stringify(dataset));
-  t.is(dataset[0].data[0][1], 2, JSON.stringify(dataset));
+  t.is(view.datasets.length, 1, JSON.stringify(view.datasets));
+  t.is(view.datasets[0].data[0][1], 2, JSON.stringify(view.datasets));
 });
 
 
 test('ViewManyGroups', t => {
-  const dataset: Dataset[] = [];
-  const view = getView(dataset);
+  const view = new View();
   view.addPacket(getTestPacket({}, { foo: 'a',}));
   view.addPacket(getTestPacket({}, { foo: 'b', bar: 'c',}));
   view.addPacket(getTestPacket({}, { foo: 'a', bar: 'a',}));
   view.addGroup('foo');
   view.addGroup('bar');
-  t.deepEqual(dataset.length, 3);
+  t.deepEqual(view.datasets.length, 3);
   
   const expectedLabels = [
     {foo: {foo: 'a'}, bar: {bar: NULL}},
@@ -144,27 +137,25 @@ test('ViewManyGroups', t => {
   ];
   expectedLabels.forEach(label => {
     t.assert(
-      dataset.some((r) => r.label == JSON.stringify(label) && r.data[0][1] == 1),
-      `Expected label "${label}", received ${dataset.map(r => r.label)}`);
+      view.datasets.some((r) => r.label == JSON.stringify(label) && r.data[0][1] == 1),
+      `Expected label "${label}", received ${view.datasets.map(r => r.label)}`);
   });
 });
 
 test('ViewExpiry', t => {
-  const dataset: Dataset[] = [];
-  const view = getView(dataset, () => {}, buildFrontendOptions({duration: 60_000}));
+  const view = new View(buildFrontendOptions({duration: 60_000}));
   for (let i=0; i<10; i++) {
     view.addPacket(getTestPacket({ms: i * 1000}, {}), 1000);
   }
-  t.is(dataset[0].data.length, 10, JSON.stringify(dataset[0].data));
+  t.is(view.datasets[0].data.length, 10, JSON.stringify(view.datasets[0].data));
   for (let i=0; i<5; i++) {
     view.addPacket(getTestPacket({ms: 300_000 + i * 1000 }, {}), 300_000);
   }
-  t.is(dataset[0].data.length, 5, JSON.stringify(dataset[0].data));
+  t.is(view.datasets[0].data.length, 5, JSON.stringify(view.datasets[0].data));
 });
 
 test('ViewFields', t => {
-  const dataset: Dataset[] = [];
-  const view = getView(dataset);
+  const view = new View();
   view.addPacket(getTestPacket({}, {foo: 'a', bar: 'b'}));
   let fields = new Set(view.getFields());
   t.is(fields.size, 2);
