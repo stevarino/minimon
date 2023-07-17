@@ -5,10 +5,8 @@
 
 import * as setLib from '../common/sets';
 import { BiMap } from '../common/types';
+import { pathNumbersToStar, pathSplit } from '../common/lib';
 import { BSTRoot } from './bst';
-
-const numberPattern =  /^\d+$/;
-const tokenSplitPattern = /\]\[|\[|\]|\./;
 
 export type TrieOptions = {collapseArrays: boolean, searchPrefixes: string[]};
 
@@ -187,17 +185,13 @@ export class TrieRoot<T> extends Trie<T> {
   /** convert a path to a normalized path */
   normalizePath(path: string[]) {
     if (this.options.collapseArrays) {
-      for (let i=0; i<path.length; i++) {
-        if (numberPattern.test(path[i])) {
-          path[i] = '*';
-        }
-      }
+      pathNumbersToStar(path);
     }
   }
 
   /** Given a search string, return a list of nodes */
   find(search: string): Trie<T>[] {
-    const path = search.replace(/\]$/, '').split(tokenSplitPattern).reverse();
+    const path = pathSplit(search).reverse();
     this.normalizePath(path);
     const results: Trie<T>[] = [];
     this._find(path, results);
@@ -206,7 +200,7 @@ export class TrieRoot<T> extends Trie<T> {
 
   /** Add a node to the Trie */
   addNode(field: string, onNewBranch: (tempRoot: TrieRoot<T>) => void) {
-    const path = field.replace(/\]$/, '').split(tokenSplitPattern).reverse();
+    const path = pathSplit(field).reverse();
     this.normalizePath(path);
     const normalizedField = this.options.collapseArrays ? path.slice().reverse().join('.'): field;
     let trie = this._lookup.get(normalizedField);

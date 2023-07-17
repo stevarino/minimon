@@ -144,6 +144,25 @@ function* flattenRecursiveSync(path: Key, target: unknown, filters: string[][]):
   }
 }
 
+
+const pathNumbersToStarPattern =  /^\d+$/;
+/** Given a json-path list of strings, convert numerics into * */
+export function pathNumbersToStar(path: string[]) {
+  for (let i=0; i<path.length; i++) {
+    if (pathNumbersToStarPattern.test(path[i])) {
+      path[i] = '*';
+    }
+  }
+  return path;
+}
+
+const pathSplitPattern = /\]\[|\[|\]|\./;
+const pathSplitSuffix = /\]$/;
+/** Given a json-path string, splits it into a list of strings */
+export function pathSplit(path: string) {
+  return path.replace(pathSplitSuffix, '').split(pathSplitPattern)
+}
+
 /** Flatten a json object, without the outermost brackets. */
 export function* flattenBody(params: unknown, filters?: Array<string>) {
   let sep = '';
@@ -240,6 +259,7 @@ export function inflateObject<T = string>(obj: {[key: string]: T}) {
   return _check(output);
 }
 
+/** Given an object and a set of key/value pairs, return an overwritten object */
 export function overwriteObject(obj: {[path: string]: unknown}, settings: {[path: string]: unknown}) {
   for (const [path, val] of Object.entries(settings)) {
     let target = obj;

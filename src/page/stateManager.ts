@@ -1,7 +1,7 @@
 import { regexEscape } from '../common/lib';
 import { difference, intersection } from '../common/sets';
 import { FilterType } from '../worker/filterTypes';
-import { State } from '../common/state';
+import { State, StateTriple } from '../common/state';
 import * as events from '../common/events'
 
 const FILTER_TYPE_RE = FilterType.types.map(f => regexEscape(f.label)).join('|');
@@ -114,7 +114,7 @@ export class StateManager {
 
   /** Send new state to clients */
   updateListeners() {
-    events.STATE.emit(this.state);
+    events.STATE.emit(this.state.map(s => s.toJSON() as StateTriple));
   }
 }
 

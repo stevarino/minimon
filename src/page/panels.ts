@@ -12,7 +12,6 @@ events.PACKETS_RES.addListener(payloads => {
   const el = htmlElement('a', { href, download: 'data.json' }) as HTMLAnchorElement;
   document.body.appendChild(el);
   el.click();
-  console.log('clicked');
   document.body.removeChild(el);
   window.URL.revokeObjectURL(href);
 });
@@ -90,7 +89,6 @@ function showSidebar() {
 export const buttonCallbacks: ButtonCallback = {  
   hideSidebar,
   download: () => {
-    console.log('dl clicked')
     events.PACKETS_REQ.emit(null);
   }
 };

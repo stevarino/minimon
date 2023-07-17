@@ -1,8 +1,10 @@
-import { DefaultMap, Table, TABLE_COLUMNS, KNOWN_COLUMNS } from '../common/types';
-import { formatBytes, querySelector, htmlElement } from '../common/lib';
+import { DefaultMap, Table, TABLE_COLUMNS, KNOWN_COLUMNS, PacketField, State } from '../common/types';
+import { formatBytes, querySelector, htmlElement, htmlText, pathNumbersToStar, pathSplit } from '../common/lib';
 import { buttonCallbacks } from './panels';
-import { filtersFromField, filtersFromGrouping, filterWidget } from './filterWidget';
+import { filterWidget } from './filterWidget';
 import * as events from '../common/events';
+
+const findJSONValue = /^(.*?)"([^"]+)"(,?)$/
 
 events.STATE.addListener(() => {
   Object.entries({
@@ -21,14 +23,61 @@ events.TABLE_AGG_RES.addListener(table => {
   loadTable('#aggPanel table', table);
 });
 
-events.PACKET_RES.addListener(([packetId, packet]) => {
-  console.log(packetId, packet);
-  if (packet === undefined) {
+events.PACKET_RES.addListener(response => {
+  const {packetId, payload, params} = response;
+  if (payload === undefined) {
     console.error('Unable to load packet: ', packetId);
     return;
   }
+
+  const fieldLookup = new DefaultMap<string, Set<string>>(() => new Set());
+  for (const [param, fields] of params) {
+    for (const field of fields) {
+      const lookup = fieldLookup.getOrCreate(field).value;
+      lookup.add(field);
+      lookup.add(param);
+    }
+  }
+
+  const keykey: {[key: string]: string} = {};
+  for (const key in payload) {
+    keykey[key] = key;
+    payload[key] = PacketField.fromJSON(payload[key]);
+    fieldLookup.getOrCreate(key).value.add(key);
+    fieldLookup.getOrCreate(key).value.add(
+      pathNumbersToStar(pathSplit(key)).join('.'));
+  }
+
+  const lines = JSON.stringify(keykey, undefined, 2);
+  const nodes: Node[] = [];
+  const rawJSON: string[] = [];
+  for (const line of lines.split('\n')) {
+    const match = line.match(findJSONValue);
+    if (match === null) {
+      nodes.push(htmlText(line + '\n'));
+      rawJSON.push(line, '\n');
+      continue;
+    }
+    const [_, pre, field, post] = match;
+    const jsonValue = JSON.stringify(payload[field]);
+    rawJSON.push(pre, jsonValue, post, '\n');
+    const stateSet = State.fromField(
+      field, payload[field].value, 
+      Array.from(fieldLookup.get(field)?.values() ?? []));
+    nodes.push(
+      htmlText(pre),
+      htmlElement('div', {style: {display: 'inline-block'}},
+        filterWidget(htmlText(jsonValue + post), stateSet)),
+    );
+    nodes.push(htmlText('\n'));
+  }
+
   querySelector('#modal h1').innerText = `Packet ${packetId}`;
-  querySelector('#modal pre').innerText = packet;
+  querySelector('#copyText').innerText = rawJSON.join('');
+  const pre = querySelector('#modal pre');
+  pre.innerHTML = '';
+  pre.append(...nodes);
+
   querySelector<HTMLDialogElement>('#modal').showModal();
 });
 
@@ -41,8 +90,8 @@ Object.assign(buttonCallbacks, {
     querySelector('#modal h1').innerText = 'Packet _';
   },
   dialogCopy: function() {
-    const pre = querySelector<HTMLPreElement>('#modal pre');
-    navigator.clipboard.writeText(pre.innerText);
+    const copyText = querySelector<HTMLDivElement>('#copyText');
+    navigator.clipboard.writeText(copyText.innerText);
   }
 });
 
@@ -92,43 +141,28 @@ function loadTable(selector: string, data: Table) {
   });
   table.innerHTML = '';
   const thead_tr = document.createElement('tr');
-  /** Field to params[] */
+
+  /** flip params to field lookup */
   const fieldLookup = new DefaultMap<string, string[]>(() => []);
-  data.groupMapping?.forEach((fields, param) => {
-    fields.forEach(field => fieldLookup.getOrCreate(field).value.push(param));
-  });
+  for (const [param, fields] of data.params ?? []) {
+    for (const field of fields) {
+      fieldLookup.getOrCreate(field).value.push(param);
+    }
+  }
+  
   table.append(thead_tr);
 
-  data.headers.forEach(h => {
+  for (const h of data.headers) {
     thead_tr.append(
       htmlElement('th', {
         innerText: h,
         title: headerTitles.get(h),
-        onClick: (e) => {
-          const th = e.target as HTMLElement;
-          const table = th.closest('table');
-          table?.querySelectorAll('th').forEach(th => {
-            if (th.innerText !== h) {
-              delete th.dataset['asc'];
-            }
-          });
-          if (table === null) {
-            console.error('Unable to locate nearest table');
-            return;
-          }
-          // TODO: See if we can preserve sort order across table generations...
-          Array.from(table.querySelectorAll('tr:nth-child(n+2)'))
-            .sort(comparer(
-              // @ts-ignore
-              Array.from(th.parentNode.children).indexOf(th),
-              '1' == (th.dataset.asc = (th.dataset.asc === '1' ? '0' : '1'))))
-            .forEach(tr => table.appendChild(tr) );
-        },
+        onClick: tableHeaderClick,
       })
     );
-  });
+  }
 
-  data.rows.forEach(row => {
+  for (const row of data.rows) {
     const tr = document.createElement('tr');
     /** param => field => value */
     const grouping: {[param: string]: {[field: string]: string}} = {};
@@ -159,14 +193,35 @@ function loadTable(selector: string, data: Table) {
         td.innerText = formatBytes(Number(value));
         td.dataset.val = value;
       } else if (field === TABLE_COLUMNS.COUNT) {
-        td.append(filterWidget(value, filtersFromGrouping(grouping)));
+        td.append(filterWidget(value, State.fromGroupings(grouping)));
       } else {
         td.append(
-          filterWidget(value, filtersFromField(field, value, fieldLookup.get(field) ?? [])),
+          filterWidget(value, State.fromField(field, value, fieldLookup.get(field) ?? [])),
         );
       }
       tr.appendChild(td);
     });
     table.appendChild(tr);
+  }
+}
+
+function tableHeaderClick(e: MouseEvent) {
+  const th = e.target as HTMLElement;
+  const table = th.closest('table');
+  table?.querySelectorAll('th').forEach(el => {
+    if (el.innerText !== th.innerText) {
+      delete el.dataset['asc'];
+    }
   });
+  if (table === null) {
+    console.error('Unable to locate nearest table');
+    return;
+  }
+  // TODO: See if we can preserve sort order across table generations...
+  Array.from(table.querySelectorAll('tr:nth-child(n+2)'))
+    .sort(comparer(
+      // @ts-ignore
+      Array.from(th.parentNode.children).indexOf(th),
+      '1' == (th.dataset.asc = (th.dataset.asc === '1' ? '0' : '1'))))
+    .forEach(tr => table.appendChild(tr) );
 }

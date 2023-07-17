@@ -4,7 +4,7 @@ import './graph';
 import './panelFavorites';
 import './panelFilters';
 import './panelTable';
-import './state';
+import './stateManager';
 
 declare global {
   var WORKER: Worker;

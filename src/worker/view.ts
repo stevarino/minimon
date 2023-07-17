@@ -3,7 +3,7 @@ import { FilterSet } from './filters';
 import { FilterType } from './filterTypes';
 import { PacketStore } from './packetStore';
 import { FrontendOptions, buildFrontendOptions } from '../options';
-import { State } from '../common/state';
+import { StateTriple } from '../common/state';
 import * as events from '../common/events';
 import { inflateObject, yieldJoin } from '../common/lib';
 
@@ -36,9 +36,7 @@ export class View {
   /** Generate a new series of datasets and merge it with the graph datasets */
   reindex() {
     this.datasets.length = 0;
-    const newData = this.storage.render(this.filters).forEach(ds => {
-      this.datasets.push(ds);
-    });
+    this.datasets.push(...this.storage.render(this.filters));
     this.sendChartData(false);
   }
 
@@ -206,14 +204,13 @@ export class View {
     }
   }
 
+  /** Get a packet payload - used for packet dialog popup */
   getPayload(packetId: number) {
-    let packet = this.storage.packetIds.get(packetId) ?? this.table?.packets?.get(packetId);
-    if (packet !== undefined) {
-      const inflated = inflateObject<PacketField>(packet.payload);
-      const packetString = JSON.stringify(inflated, undefined, 2);
-      return packetString;
-    }
-    return undefined;
+    return {
+      packetId: packetId,
+      payload: (this.storage.packetIds.get(packetId) ?? this.table?.packets?.get(packetId))?.payload,
+      params: this.getParams(),
+    };
   }
 
   /** Returns a string json-array of filtered packet payloads  */
@@ -228,15 +225,24 @@ export class View {
     return `[${buffer.join(',')}]`;
   }
 
+  /** Return a list of search-param to fields pairings */
+  getParams() {
+    const params: [string, string[]][] = [];
+    for (const [param, filterItem] of this.getFilterItems()) {
+      params.push([param, Array.from(filterItem.getFields())]);
+    }
+    return params;
+  }
+
   getAggregateTable(): Table {
     const table = this.storage.tabulateAggregate(this.filters);
-    table.groupMapping = this.getGroupMapping();
+    table.params = this.getParams();
     return table;
   }
 
   getPacketTable(limit: number): Table {
     const table = this.storage.tabulateUnaggregated(this.filters, limit);
-    table.groupMapping = this.getGroupMapping();
+    table.params = this.getParams();
     this.table = Object.assign({}, table);
     table.packets = undefined;
     return table;
@@ -247,7 +253,7 @@ export class View {
     this.storage.updateOptions(options);
   }
 
-  mergeFilterState(state: State[]) {
+  mergeFilterState(state: StateTriple[]) {
     this.filters.mergeFromState(state);
     this.reindex();
   }

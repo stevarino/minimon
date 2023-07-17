@@ -1,5 +1,5 @@
 
-import { changeState, setState } from './state';
+import { changeState, setState } from './stateManager';
 import * as events from '../common/events';
 import * as state from '../common/state';
 import { createButton, htmlElement, querySelector } from '../common/lib';

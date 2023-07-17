@@ -337,6 +337,10 @@ dialog pre {
   overflow: auto;
 }
 
+dialog pre>div {
+  display: inline-block;
+}
+
 dialog .body {
   position: absolute;
 }
@@ -468,30 +472,33 @@ https://github.com/alphagov/accessible-autocomplete/blob/main/src/autocomplete.c
   font-size: 1em;
 }
 
-.datatable .filter_dropdown .filter_arrow {
+.datatable .filter_dropdown .filter_arrow,
+dialog .filter_dropdown .filter_arrow {
   visibility: hidden;
 }
 
-.datatable .filter_dropdown:hover .filter_arrow {
+.datatable .filter_dropdown:hover .filter_arrow,
+dialog .filter_dropdown:hover .filter_arrow {
   visibility: visible;
 }
 
-#filterDropdown {
+.filter_dropdown_items {
   border-radius: 0.25em;
   box-shadow: #999 1px 2px 2px 1px;
   display: none;
   position: absolute;
+  height: auto;
   z-index: 200;
   background: #fff;
   padding: 0.1em 0.25em 0.1em 0.5em;
   box-sizing: border-box;
 }
 
-#filterDropdown > div {
+.filter_dropdown_items > div {
   cursor: pointer;
 }
 
-#filterDropdown > div:hover {
+.filter_dropdown_items > div:hover {
   cursor: pointer;
   background: #99f;
 }

@@ -4,7 +4,12 @@ import { networkInit as networkInit } from './network';
 
 events.workerInit();
 
-export const VIEW = new View();
+declare global {
+  // global for browser inspection
+  var VIEW: View;
+}
+
+self.VIEW = new View();
 
 events.FIELDS_REQ.addListener(searchTerm => {
   events.FIELDS_RES.emit(VIEW.findFields(searchTerm));
@@ -31,7 +36,7 @@ events.PACKETS_REQ.addListener(() => {
 });
 
 events.PACKET_REQ.addListener(packetId => {
-  events.PACKET_RES.emit([packetId, VIEW.getPayload(packetId)]);
+  events.PACKET_RES.emit(VIEW.getPayload(packetId));
 });
 
-networkInit();
+networkInit(VIEW);

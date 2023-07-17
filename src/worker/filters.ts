@@ -11,12 +11,12 @@
  *           - field
  */
 
-import { globToRegex, isEmptyObject } from '../common/lib';
+import { globToRegex, isEmptyObject, regexEscape } from '../common/lib';
 import { FilterType, REType, MATCHES, NOT_MATCHES } from './filterTypes';
 import { Trie } from './trie';
 import { DefaultMap, Packet, ROOT, NULL, Grouping } from '../common/types';
 import { PacketStore } from './packetStore';
-import { State } from '../common/state';
+import { State, StateTriple } from '../common/state';
 import { difference } from '../common/sets';
 
 
@@ -38,6 +38,12 @@ export class Filter {
     } else {
       this.testValue = testValue;
     }
+  }
+
+  isSatisfied(packet: Packet, field: string) {
+    return this.type.check(
+      packet.payload[field]?.value as string|undefined,
+      this.testValue);
   }
 }
 
@@ -61,6 +67,32 @@ export class FilterItem {
     return this.filters.map(f => {
       return { op: f.type.label, testValue: f.stringValue };
     });
+  }
+
+  toStates(): StateTriple[] {
+    const states: StateTriple[] = [];
+    for (const f of this.filters) {
+      states.push([this.searchParam, f.type.label, f.stringValue])
+    }
+    if (this.isGroup()) states.push([this.searchParam, '*', '']);
+    return states;
+  }
+
+  /** Given a packet, returns true if the FilterItem is not met for all applicable fields */
+  isFiltered(packet: Packet) {
+    for (const filter of this.filters) {
+      let satisfied = false;
+      // packet is not filtered if filter on any field passes
+      for (const field of this.getFields()) {
+        if (filter.isSatisfied(packet, field)) {
+          satisfied = true;
+          break;
+        }
+      }
+      // a Filter was not met, packet is filtered
+      if (!satisfied) return true;
+    }
+    return false;
   }
 
   /** Determine if this item is safe to remove, and if so, clean up references. */
@@ -146,6 +178,14 @@ export class FilterSet {
     return obj;
   }
 
+  toStates(): StateTriple[] {
+    const states: StateTriple[] = [];
+    for (const fi of this.items.values()) {
+      states.push(...fi.toStates())
+    }
+    return states;
+  }
+
   getGroups(): FilterItem[] {
     const groups: FilterItem[] = [];
     for (const [_, item] of this.items) {
@@ -192,20 +232,8 @@ export class FilterSet {
    * If any Filter for a filterset fails, the packet is filtered.
    * */
   isFiltered(packet: Packet) {
-    for (const [key, items] of this.items) {
-      for (const filter of items.filters) {
-        let keep = false;
-        for (const field of items.getFields()) {
-          if (filter.type.check(packet.payload[field]?.value as string|undefined, filter.testValue)) {
-            keep = true;
-            break;
-          }
-        }
-        // a Filter was not met, packet is filtered
-        if (!keep) {
-          return true;
-        }
-      }
+    for (const [_, items] of this.items) {
+      if (items.isFiltered(packet)) return true;
     }
     // all FilterItems were met, packet is not filtered
     return false;
@@ -246,21 +274,56 @@ export class FilterSet {
   }
 
   /** Adds a particular filter, initiated by user.  */
-  addFilter(key: string, type: FilterType, value: string) {
-    let parsedValue: string|RegExp = value;
+  addFilter(key: string, type: FilterType|string, value: string|string[]) {
+    let parsedValue: string|RegExp
+    if (typeof type === 'string') {
+      if (type === '*') {
+        return this.getOrCreateItem(key).setGroup();
+      } else if (type === '!*') {
+        if (this.getOrCreateItem(key).unsetGroup()) {
+          this.items.delete(key);
+        }
+        return;
+      }
+      type = FilterType.get(type);
+    }
+
     if (type === MATCHES || type === NOT_MATCHES) {
+      if (Array.isArray(value)) {
+        value = value.map(regexEscape).join('|');
+      }
       parsedValue = RegExp(value);
+    } else {
+      if (Array.isArray(value)) {
+        throw new Error('Received array for non-regex match');
+      }
+      parsedValue = value;
     }
     this.getOrCreateItem(key).addFilter(new Filter(type, value));
   }
 
   /** Removes a particular filter, initiated by user. */
-  removeFilter(key: string, type: FilterType, value: string): boolean {
+  removeFilter(key: string, type: FilterType|string, value: string|string[]): boolean {
     const item = this.items.get(key);
     if (item === undefined) {
       console.error('Unknown filter key: ', key);
       return false;
     }
+    if (typeof type === 'string') {
+      if (type === '*') {
+        if (item.unsetGroup()) {
+          this.items.delete(key);
+          return true;
+        }
+        return false;
+      }
+      type = FilterType.get(type);
+    }
+
+    if (Array.isArray(value)) {
+      value = value.map(regexEscape).join('|');
+    }
+
     if (item.removeFilter(type, value)) {
       this.items.delete(key);
       return true;
@@ -274,77 +337,17 @@ export class FilterSet {
     }
   }
 
-  mergeFromState(state: State[]) {
-    const updates = new DefaultMap<string, Set<string>>(() => new Set()); 
-    const updateLookup = new Map<string, State>();
-    const newParams = new Set<string>();
-    state.forEach(s => {
-      const str = `${s.param} ${s.op} ${s.value}`;
-      updates.getOrCreate(s.param).value.add(str);
-      newParams.add(s.param);
-      updateLookup.set(str, s);
+  mergeFromState(states: StateTriple[]) {
+    const incoming = new Set(states.map(s => JSON.stringify(s)));
+    const current = new Set(this.toStates().map(s => JSON.stringify(s)));
+    // add filters not currently found
+    difference(incoming, current).forEach((s) => {
+      const state: StateTriple = JSON.parse(s);
+      this.addFilter(...state)
     });
-
-    const toRemove: string[] = [];
-    this.items.forEach((item, key) => {
-      const update = updates.get(key);
-      if (update === undefined) {
-        // delete FilterItem
-        toRemove.push(key);
-      } else {
-        // merge FilterItem
-        const existing = new Set<string>();
-        const existingMap = new Map<string, Filter>();
-        item.filters.forEach(f => {
-          const str = `${key} ${f.type.label} ${f.testValue.toString()}`;
-          existing.add(str);
-          existingMap.set(str, f);
-        });
-        if (item.isGroup()) {
-          existing.add(`${key} * `);
-        }
-
-        // filters in update but not in current
-        difference(update, existing).forEach((update) => {
-          const state = updateLookup.get(update) as State;
-          if (state.op === '*') {
-            item.setGroup();
-          } else {
-            item.addFilter(new Filter(FilterType.get(state.op), state.value));
-          }
-        });
-        // filters in current but not in update
-        difference(existing, update).forEach((update) => {
-          if (update.endsWith(' * ')) {
-            item.unsetGroup();
-          } else {
-            const filter = existingMap.get(update);
-            if (filter === undefined) {
-              console.error('Unable to lookup filter:  ', update);
-              return;
-            }
-            item.removeFilter(filter.type, String(filter.testValue));
-          }
-        });
-      }
-    });
-
-    difference(newParams, new Set(this.items.keys())).forEach(item => {
-      // add new FilterItem
-      const fi = this.getOrCreateItem(item);
-      updates.get(item)?.forEach(update => {
-        const state = updateLookup.get(update);
-        if (state === undefined) {
-          console.error('Unable to find update: ', update);
-          return;
-        }
-        if (state.op === '*') {
-          fi.setGroup();
-        } else {
-          fi.addFilter(new Filter(FilterType.get(state.op), state.value));
-        }
-      });
-    });
-    toRemove.forEach(k => this.items.delete(k));
+    difference(current, incoming).forEach(s => {
+      const state: StateTriple = JSON.parse(s);
+      this.removeFilter(...state)
+    })
   }
 }

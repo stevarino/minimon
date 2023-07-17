@@ -1,5 +1,5 @@
 import { querySelector, htmlText, htmlElement, createButton } from '../common/lib';
-import { changeState } from './state';
+import { changeState } from './stateManager';
 import { State } from '../common/state';
 import { FilterType } from '../worker/filterTypes';
 import * as events from '../common/events';
@@ -70,10 +70,11 @@ events.STATE.addListener((state) => {
   const ul = querySelector<HTMLUListElement>('#active_filters') as HTMLUListElement;
   Array.from(ul.childNodes).forEach(n => ul.removeChild(n));
   state.forEach(s => {
-    if (s.op === '*') {
-      addGroupItem(ul, s.param);
+    const state = new State(...s);
+    if (state.op === '*') {
+      addGroupItem(ul, state.param);
     } else {
-      addFilterItem(ul, s.param, s.op, s.value);
+      addFilterItem(ul, state.param, state.op, state.value);
     }
   });
 });

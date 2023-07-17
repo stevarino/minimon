@@ -59,7 +59,7 @@ export class PacketStore {
    * Returns a new series of datasets (graph lines consisting of a label and
    * a series of x/y points).
    */
-  render(filters: FilterSet|undefined=undefined): Dataset[] {
+  render(filters?: FilterSet): Dataset[] {
     const datasets: Dataset[] = [];
     
     if (filters === undefined) filters = new FilterSet(this);
@@ -76,8 +76,7 @@ export class PacketStore {
     }
 
     for (const [label, pts] of datasetMap) {
-      const data: [ x:number, y:number ][] = [];
-      data.push(...pts);
+      const data: [ x:number, y:number ][] = Array.from(pts);
       datasets.push({ label, data });
     }
     return datasets;
@@ -162,11 +161,7 @@ export class PacketStore {
         ...fields.map(f => String(packet.payload[f] ?? NULL)),
       ]);
     }
-    return {
-      headers: headers,
-      rows: rows,
-      packets: packets,
-    };
+    return { headers, rows, packets, };
   }
 
   getFields(): string[] {

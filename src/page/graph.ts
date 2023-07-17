@@ -1,16 +1,20 @@
-import { createChart, Point } from '../common/chartJS';
+import { createChart, Point, Chart } from '../common/chartJS';
 
-import { ROOT, Grouping } from '../common/types';
+import { ROOT, Grouping, State } from '../common/types';
 import { htmlElement, querySelector } from '../common/lib';
 import * as events from '../common/events';
-import { filtersFromGrouping, filtersFromParam, filterWidget } from './filterWidget';
+import { filterWidget } from './filterWidget';
 
 let CLICK_LOCK = false;
 let HOVER_LOCK = false;
 
 const legendParser = /(.*):\s+(\d+)\s*$/;
 
-const CHART = createChart(querySelector<HTMLCanvasElement>('#chart'), {
+declare global {
+  var CHART: Chart;
+}
+
+window.CHART = createChart(querySelector<HTMLCanvasElement>('#chart'), {
   'options.onClick': () => { CLICK_LOCK = !CLICK_LOCK },
   'options.plugins.tooltip': { enabled: false, external: tooltip },
 });
@@ -126,7 +130,7 @@ function tooltip(context: any) {
         }
         const grouping: Grouping = JSON.parse(labels);
         row.append(htmlElement('td', {},
-          filterWidget(lineEl, filtersFromGrouping(grouping))
+          filterWidget(lineEl, State.fromGroupings(grouping))
         ));
         for (const [searchTerm, fields] of Object.entries(grouping)) {
           let displayValue = '';
@@ -145,9 +149,9 @@ function tooltip(context: any) {
               displayValue = `[ ${ values.slice(0, i).join(', ') }, ... ]`;
             }
           }
-          row.appendChild(htmlElement('td', {},
-            filterWidget(`${searchTerm} : ${displayValue}`, filtersFromParam(searchTerm, fields))
-          ));
+          row.appendChild(htmlElement('td', {}, filterWidget(
+            `${searchTerm} : ${displayValue}`,
+            State.fromParam(searchTerm, fields))));
         }
       });
     });

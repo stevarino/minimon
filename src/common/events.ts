@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { FrontendOptions } from '../options';
-import { Payload, Table } from '../common/types';
-import { State } from './state';
+import { Grouping, Payload, Table } from '../common/types';
+import { State, StateTriple } from './state';
 
 class MessageRouterContext {
   worker: Worker|null = null;
@@ -58,7 +58,7 @@ export const TABLE_PACKET_REQ = new MessageRouter<number>();
 export const TABLE_PACKET_RES = new MessageRouter<Table>();
 export const FILTERS = new MessageRouter<Table>();
 export const GROUPS = new MessageRouter<{[group: string]: string[]}>();
-export const STATE = new MessageRouter<State[]>();
+export const STATE = new MessageRouter<StateTriple[]>();
 /** Field Searches */
 export const FIELDS_REQ = new MessageRouter<string>();
 export const FIELDS_RES = new MessageRouter<string[]>();
@@ -67,7 +67,10 @@ export const PACKETS_REQ = new MessageRouter<null>();
 export const PACKETS_RES = new MessageRouter<string>();
 /** Display singular packet */
 export const PACKET_REQ = new MessageRouter<number>();
-export const PACKET_RES = new MessageRouter<[number, string|undefined]>();
+export const PACKET_RES = new MessageRouter<{
+  packetId: number,
+  payload: Payload|undefined,
+  params: [string, string[]][]}>();
 /** Rate counters on top of page */
 export const SAMPLES = new MessageRouter<{pps: string, bps: string}>();
 /** Points for updating chart */

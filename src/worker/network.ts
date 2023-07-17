@@ -4,7 +4,7 @@ import * as events from '../common/events'
 import { FrontendOptions } from '../options';
 import { DemoEventSource, demoEventSource, demoOptions, IS_DEMO } from '../page/frontendDemo';
 import { formatBytes } from '../common/lib';
-import { VIEW } from './bundle.worker';
+import { View } from './view';
 
 /** time (in ms) to sample packets */
 const SAMPLE_TIME = 3_000;
@@ -62,7 +62,7 @@ function calculateRate() {
 }
 
 /** Initializes Event Emitter and timers */
-export function networkInit() {
+export function networkInit(view: View) {
   calculateRate();
 
   let eventSource: EventSource|DemoEventSource|null = null;
@@ -83,7 +83,7 @@ export function networkInit() {
   eventSource.addEventListener('packet', event => {
     const packet = JSON.parse(event.data);
     sample.push({ ms: packet.header.ms, size: packet.header.size });
-    VIEW.addPacket(packet);
+    view.addPacket(packet);
   });
 
   /** Packet header sent, create inbox entry */
@@ -132,6 +132,6 @@ export function networkInit() {
     }
     delete inbox[id];
     sample.push({ ms: packet.header.ms, size: packet.header.size });
-    VIEW.addPacket(packet);
+    view.addPacket(packet);
   });
 }

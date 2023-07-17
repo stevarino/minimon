@@ -1,3 +1,5 @@
+export { State, StateTriple } from './state';
+
 export const ROOT = 'Total';
 export const NULL = '␀';
 
@@ -141,6 +143,12 @@ export class PacketField {
     }
     return JSON.parse(this.value);
   }
+
+  static fromJSON(json: {value: string, isString: boolean}) {
+    const obj = new PacketField(NULL);
+    Object.assign(obj, json);
+    return obj;
+  }
 }
 
 /** Represents a graph line, with a label and a series of {x, y} points */
@@ -154,7 +162,7 @@ export interface Table {
   headers: string[];
   rows: string[][];
   packets?: Map<number, Packet>;
-  groupMapping?: Map<string, string[]>;
+  params?: [string, string[]][];
 }
 
 /** Common column names */

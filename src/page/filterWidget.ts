@@ -1,6 +1,7 @@
-import { htmlElement, htmlText, querySelector } from '../common/lib';
+import { htmlElement, htmlText } from '../common/lib';
 import { State } from '../common/state';
-import { changeState } from './state';
+import { changeState } from './stateManager';
+import * as events from '../common/events';
 
 /** Reference for all dropdowns currently rendered */
 const EL_TO_DROPDOWNS = new WeakMap<Element, State[][]>();
@@ -9,19 +10,18 @@ const EL_TO_DROPDOWNS = new WeakMap<Element, State[][]>();
 const EL_TO_DROPDOWN_ITEM = new WeakMap<Element, State[]>();
 
 /** Dropdown element */
-const DROPDOWN_EL = querySelector('#filterDropdown');
+const DROPDOWNS: HTMLElement[] = [];
 
-function makeFilterDropdownItem(states: State[]) {
-  const action = states[0];
-  const el = htmlElement('div', {
-    innerText: `${action.param} ${action.op} ${action.displayValue()}${states.length > 1 ? ' ...' : ''}`,
-    onClick: dropdownClick,
-  });
-  EL_TO_DROPDOWN_ITEM.set(el, states);
-  return el;
-}
+let STATES = new Set<string>();
 
-export function filterWidget(node: HTMLElement|Text|string, filters: State[][]) {
+events.STATE.addListener(states => {
+  STATES.clear();
+  for (const s of states) {
+    STATES.add(JSON.stringify(s));
+  }
+});
+
+export function filterWidget(node: HTMLElement|Text|string, stateSet: State[][]) {
   if (typeof node === 'string') {
     node = htmlText(node);
   }
@@ -30,113 +30,52 @@ export function filterWidget(node: HTMLElement|Text|string, filters: State[][]) 
     htmlElement('div', {classList: ['filter_item']}, node),
     htmlElement('span', {
       innerText: 'keyboard_arrow_down',
-      // innerText: 'more_vert',
       classList: ['material-symbols-outlined', 'filter_arrow']
     })
   );
-  EL_TO_DROPDOWNS.set(el, filters);
+  EL_TO_DROPDOWNS.set(el, stateSet);
   return el;
 }
 
-export function filtersFromParam(param: string, fieldValues: {[key: string]: string}) {
-  const stateSet: State[][] = [];
-  const values: string[] = [];
-  Object.entries(fieldValues).forEach(([field, value]) => {
-    values.push(value);
-    if (param !== field || values.length === 1) {
-      stateSet.push(
-        [ new State(field, '==', value), new State(param, '!*', ''), ],
-        [ new State(field, '!=', value) ],
-      );
-      if (field !== param) {
-        stateSet.push(
-          [ new State(param, '==', value), new State(param, '!*', ''), ],
-          [ new State(param, '!=', value) ],
-        );
-      }
-    }
-  });
-  if (values.length !== 1) {
-    stateSet.push(
-      [ new State(param, '~', values), new State(param, '!*', ''), ],
-      [ new State(param, '!~', values) ],
-    );
+/** Checks if any group of states is alrady in our set states */
+function removeActiveStates(stateSet: State[][]) {
+  const indexes = [];
+  for (const [i, states] of stateSet.entries()) {
+    let found = states.map(s => STATES.has(JSON.stringify(s)));
+    if (found.reduce((pv, cv) => pv && cv)) indexes.push(i);
   }
-  return stateSet;
+  indexes.reverse();
+  for (const i of indexes) stateSet.splice(i, 1);
 }
 
-export function filtersFromGrouping(grouping: {[param: string]: {[field: string]: string}}) {
-  const stateSet: State[][] = [
-    [],  // [field == value ...]
-    [],  // [field != value ...]
-    [],  // [param ~ values]
-    [],  // [param !~ values]
-  ];
-  const values: string[] = [];
-  Object.entries(grouping).forEach(([param, fields]) => {
-    Object.entries(fields).forEach(([field, value]) => {
-      values.push(value);
-      stateSet[0].push(
-        new State(field, '==', value),
-        new State(field, '!*', ''));
-      stateSet[1].push(new State(field, '!=', value));
-    });
-    stateSet[0].push(new State(param, '!*', ''));
-    stateSet[2].push(
-      new State(param, '~', values),
-      new State(param, '!*', ''));
-    stateSet[3].push(new State(param, '!~', values));
-  });
-  return stateSet;
-}
-
-
-export function filtersFromField(field: string, value: string, params: string[]) {
-  const filters: State[][] = [];
-  filters.push(  
-    [ new State(field, '==', value), new State(field, '!*', ''), 
-      ...params.map(p => new State(p, '!*', '')) ],
-    [ new State(field, '!=', value) ],
-  );
-  params.forEach(param => {
-    if (param !== field) {
-      filters.push(
-        [ new State(param, '==', value), new State(param, '!*', '') ],
-        [ new State(param, '!=', value) ],
-      );
-    }
-  });
-  return filters;
-}
-
-export function filtersFromArray(filters: [param: string, op: string, value: string|string[]][][]) {
-  return filters.map(f => State.create(f));
+function makeFilterDropdownItem(states: State[]) {
+  const action = states[0];
+  let innerText: string;
+  if (action.op === '*') {
+    innerText = `Group by ${action.param}`;
+  } else {
+    innerText = action.toJSON().join(' ');
+  }
+  if (states.length > 1) {
+    innerText += ' ...';
+  }
+  const el = htmlElement('div', { innerText, onClick: dropdownClick, });
+  EL_TO_DROPDOWN_ITEM.set(el, states);
+  return el;
 }
 
 function showFiltersList(e: MouseEvent) {
   e.stopPropagation();
-  const el = (e.target as HTMLElement|null)?.closest('.filter_dropdown') ?? null;
+  const el = (e.target as HTMLElement|null)?.closest<HTMLDivElement>('.filter_dropdown') ?? null;
   if (el === null) {
     console.error('unable to find filter_dropdown', e);
     return;
   }
-  const filters = EL_TO_DROPDOWNS.get(el);
-  if (filters === undefined) {
-    console.error('Unable to locate dropdown for element: ', el);
-  }
-
-  const bb = el.getBoundingClientRect();
-  const dd = DROPDOWN_EL;
-
-  dd.innerHTML = '';
-  filters?.forEach(f => dd.append(makeFilterDropdownItem(f)));
-  dd.style.top = String(bb.top);
-  dd.style.minWidth = String(bb.width);
-  dd.style.display = 'block';
-  dd.style.left = String(bb.left);
+  createDropdown(el);
 }
 
 function dropdownClick(e: MouseEvent) {
+  removeDropdowns();
   e.stopPropagation();
   const el = e.target as HTMLElement;
   const states = EL_TO_DROPDOWN_ITEM.get(el);
@@ -147,7 +86,37 @@ function dropdownClick(e: MouseEvent) {
   changeState(states, []);
 }
 
-document.body.addEventListener('click', (e) => {
-  DROPDOWN_EL.style.display = 'none';
-  DROPDOWN_EL.innerHTML = '';
-});
+function createDropdown(el: HTMLElement) {
+  removeDropdowns();
+  const stateSet = EL_TO_DROPDOWNS.get(el);
+  if (stateSet === undefined) {
+    console.error('Unable to locate dropdown for element: ', el);
+    return;
+  }
+  removeActiveStates(stateSet);
+
+  const parent = el.closest('dialog') ?? document.body;
+  let parentBB: {left: number, top: number} = parent.tagName === 'BODY'
+    ? {top: 0, left: 0} : parent.getBoundingClientRect();
+
+  const dd = htmlElement('div', {classList: ['filter_dropdown_items']});
+  parent.appendChild(dd);
+  DROPDOWNS.push(dd);
+
+  const bb = el.getBoundingClientRect();
+  stateSet.forEach(f => dd.append(makeFilterDropdownItem(f)));
+  dd.style.top = String(bb.top - parentBB.top);
+  dd.style.minWidth = String(bb.width);
+  dd.style.display = 'block';
+  dd.style.left = String(bb.left - parentBB.left);
+}
+
+function removeDropdowns() {
+  DROPDOWNS.forEach(dd => {
+    dd.style.display = 'none';
+    dd.parentElement?.removeChild(dd);
+  });
+  DROPDOWNS.length = 0;
+}
+
+document.body.addEventListener('click', removeDropdowns);

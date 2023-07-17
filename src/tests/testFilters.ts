@@ -10,8 +10,7 @@ function getFilterSet() {
 
 test('AddFilterFromState', t => {
   const filters = getFilterSet();
-  const states = State.create([['foo', '==', 'bar']]);
-  filters.mergeFromState(states);
+  filters.mergeFromState([ ['foo', '==', 'bar'] ]);
   t.deepEqual(filters.toJSON(), {foo: [{op: '==', testValue: 'bar'}]});
 });
 
@@ -19,8 +18,7 @@ test('RemoveFilterFromState', t => {
   const filters = getFilterSet();
   filters.addFilter('foo', FilterType.get('=='), 'bar');
   filters.addFilter('foo', FilterType.get('=='), 'baz');
-  const states = State.create([['foo', '==', 'bar']]);
-  filters.mergeFromState(states);
+  filters.mergeFromState([ ['foo', '==', 'bar'] ]);
   t.deepEqual(filters.toJSON(), {foo: [{op: '==', testValue: 'bar'}]});
 });
 
@@ -34,17 +32,17 @@ test('ClearFilterFromState', t => {
 
 test('AddGroupFromState', t => {
   const filters = getFilterSet();
-  filters.mergeFromState(State.create([['foo', '*', '']]));
+  filters.mergeFromState([['foo', '*', '']]);
   t.deepEqual(filters.toJSON(), {foo: [{op: '*', testValue: ''}]});
 });
 
 test('AddGroupToPrexistingFromState', t => {
   const filters = getFilterSet();
   filters.addFilter('foo', FilterType.get('=='), 'bar');
-  filters.mergeFromState(State.create([
+  filters.mergeFromState([
     ['foo', '==', 'bar'],
     ['foo', '*', ''],
-  ]));
+  ]);
   t.deepEqual(filters.toJSON(), {foo: [
     {op: '*', testValue: ''},
     {op: '==', testValue: 'bar'},
@@ -55,9 +53,9 @@ test('RemoveGroupToPrexistingFromState', t => {
   const filters = getFilterSet();
   filters.addFilter('foo', FilterType.get('=='), 'bar');
   filters.addGroup('foo');
-  filters.mergeFromState(State.create([
+  filters.mergeFromState([
     ['foo', '==', 'bar'],
-  ]));
+  ]);
   t.deepEqual(filters.toJSON(), {foo: [
     {op: '==', testValue: 'bar'},
   ]});
