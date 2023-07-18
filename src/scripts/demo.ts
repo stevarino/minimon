@@ -3,8 +3,7 @@
  */
 
 import { Server } from '..';
-import { demoOptions } from '../page/frontendDemo';
-import { runDemo } from '../common/lib';
+import { demoOptions, runDemo } from '../page/frontendDemo';
 
 const server = new Server({server: {port: 8080}, frontend: demoOptions()});
 

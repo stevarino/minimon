@@ -1,4 +1,4 @@
-import { flatten, runDemo } from '../common/lib';
+import { flatten } from '../common/lib';
 import { buildFrontendOptions } from '../options';
 
 /** Dummy event source for serverless demos */
@@ -46,16 +46,66 @@ export function demoEventSource() {
   console.info('Running in demo mode.');
   const eventSource = new DemoEventSource();
   let id = 0;
-  runDemo(async (packet) => {
-    const packetId = id++;
-    const demo = eventSource as DemoEventSource;
-    demo.emit('head', JSON.stringify( { id: packetId, ms: new Date().getTime() } ));
-    let fieldCnt = 0;
-    for await (const [key, val] of flatten(packet)) {
-      fieldCnt += 1;
-      demo.emit('body', `${packetId}:${key}:${val}`);
-    }
-    demo.emit('done', `${packetId}:${fieldCnt}`);
-  });
+  setTimeout(() => {
+    runDemo(async (packet) => {
+      const packetId = id++;
+      const demo = eventSource as DemoEventSource;
+      demo.emit('head', JSON.stringify( { id: packetId, ms: new Date().getTime() } ));
+      let fieldCnt = 0;
+      for await (const [key, val] of flatten(packet)) {
+        fieldCnt += 1;
+        demo.emit('body', `${packetId}:${key}:${val}`);
+      }
+      demo.emit('done', `${packetId}:${fieldCnt}`);
+    });
+  }, 200);
   return eventSource;
+}
+
+
+export function runDemo(publisher: (packet: object) => Promise<void>) {
+  class FlipFlop {
+    frequency: number;
+    offset: number;
+    count: number;
+    fast: number;
+    slow: number;
+  
+    constructor(frequency: number, offset: number, count: number, fast: number, slow: number) {
+      this.frequency = frequency;
+      this.offset = offset;
+      this.count = count;
+      this.fast = fast;
+      this.slow = slow;
+      this.tick();
+    }
+  
+    tick() {
+      const now = new Date().getTime();
+      const x = (now - this.offset) % this.frequency / this.frequency;
+      let timeout = this.fast;
+      if (x > 0.5) timeout = this.slow;
+      const dice: string[] = [];
+      for (let i=0; i<2*Math.random(); i++) {
+        dice.push(String(Math.floor(Math.random() * 6 + 1)));
+      }
+      for (let index=0; index<this.count; index++) {
+        publisher({
+          slow: this.slow,
+          fast: this.fast,
+          offset: this.offset,
+          frequency: this.frequency,
+          isfast: x < 0.5,
+          index,
+          dice
+        });
+      }
+      setTimeout(() => this.tick(), timeout);
+    }
+  }
+  
+  new FlipFlop(78_000, 0, 3, 100, 300);
+  new FlipFlop(45_000, 10_0000, 5, 50, 500);
+  new FlipFlop(37_000, 5_0000, 1, 50, 300);
+  new FlipFlop(24_000, 15_0000, 3, 100, 500);  
 }
