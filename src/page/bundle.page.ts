@@ -1,4 +1,5 @@
 import { querySelector } from '../common/lib';
+import * as demo from './frontendDemo';
 import * as events from '../common/events';
 import './graph';
 import './panelFavorites';
@@ -24,3 +25,5 @@ events.OPTIONS.addListener((options) => {
   document.title = options.title;
   querySelector('#customInfo').innerHTML = options.about ?? '';
 });
+
+events.INIT.emit(demo.IS_DEMO);

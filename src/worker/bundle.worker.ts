@@ -39,4 +39,6 @@ events.PACKET_REQ.addListener(packetId => {
   events.PACKET_RES.emit(VIEW.getPayload(packetId));
 });
 
-networkInit(VIEW);
+events.INIT.addListener(isDemo => {
+  networkInit(VIEW, isDemo);
+});

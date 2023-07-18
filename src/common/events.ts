@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { FrontendOptions } from '../options';
-import { Grouping, Payload, Table } from '../common/types';
-import { State, StateTriple } from './state';
+import { Payload, Table } from '../common/types';
+import { StateTriple } from './state';
 
 class MessageRouterContext {
   worker: Worker|null = null;
@@ -51,6 +51,7 @@ class MessageRouter<T> {
   }
 }
 
+export const INIT = new MessageRouter<boolean>();
 export const OPTIONS = new MessageRouter<FrontendOptions>();
 export const TABLE_AGG_REQ = new MessageRouter<null>();
 export const TABLE_AGG_RES = new MessageRouter<Table>();

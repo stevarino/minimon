@@ -2,7 +2,7 @@ import { Packet, PacketField } from '../common/types';
 import * as events from '../common/events'
 
 import { FrontendOptions } from '../options';
-import { DemoEventSource, demoEventSource, demoOptions, IS_DEMO } from '../page/frontendDemo';
+import { DemoEventSource, demoEventSource, demoOptions } from '../page/frontendDemo';
 import { formatBytes } from '../common/lib';
 import { View } from './view';
 
@@ -62,12 +62,12 @@ function calculateRate() {
 }
 
 /** Initializes Event Emitter and timers */
-export function networkInit(view: View) {
+export function networkInit(view: View, isDemo: boolean) {
   calculateRate();
 
   let eventSource: EventSource|DemoEventSource|null = null;
 
-  if (!IS_DEMO) {
+  if (!isDemo) {
     eventSource = new EventSource('/packets');
   } else {
     setOptions(demoOptions());
