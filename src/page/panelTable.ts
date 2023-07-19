@@ -1,12 +1,13 @@
-import { DefaultMap, Table, TABLE_COLUMNS, KNOWN_COLUMNS, PacketField, State } from '../common/types';
-import { formatBytes, querySelector, htmlElement, htmlText, pathNumbersToStar, pathSplit } from '../common/lib';
+import { 
+  DefaultMap, Table, TABLE_COLUMNS, KNOWN_COLUMNS, PacketField, State,
+  formatBytes, querySelector, htmlElement, htmlText, pathNumbersToStar,
+  pathSplit, Events } from '../common';
 import { buttonCallbacks } from './panels';
 import { filterWidget } from './filterWidget';
-import * as events from '../common/events';
 
 const findJSONValue = /^(.*?)"([^"]+)"(,?)$/
 
-events.STATE.addListener(() => {
+Events.STATE.addListener(() => {
   Object.entries({
     '#aggPanel': loadAggTable,
     '#packetPanel': loadPacketTable,
@@ -15,15 +16,15 @@ events.STATE.addListener(() => {
   });
 });
 
-events.TABLE_PACKET_RES.addListener(table => {
+Events.TABLE_PACKET_RES.addListener(table => {
   loadTable('#packetPanel table', table)
 });
 
-events.TABLE_AGG_RES.addListener(table => {
+Events.TABLE_AGG_RES.addListener(table => {
   loadTable('#aggPanel table', table);
 });
 
-events.PACKET_RES.addListener(response => {
+Events.PACKET_RES.addListener(response => {
   const {packetId, payload, params} = response;
   if (payload === undefined) {
     console.error('Unable to load packet: ', packetId);
@@ -96,12 +97,12 @@ Object.assign(buttonCallbacks, {
 });
 
 function loadAggTable() {
-  events.TABLE_AGG_REQ.emit(null);
+  Events.TABLE_AGG_REQ.emit(null);
 }
 
 function loadPacketTable() {
   const limit = querySelector<HTMLSelectElement>('#table_cnt').value;
-  events.TABLE_PACKET_REQ.emit(Number(limit));
+  Events.TABLE_PACKET_REQ.emit(Number(limit));
 }
 
 /** Known column headings and associated help text */
@@ -185,7 +186,7 @@ function loadTable(selector: string, data: Table) {
           onClick: (e) => {
             e.preventDefault();
             const packetId = Number((e.target as HTMLElement).dataset.id ?? '-1');
-            events.PACKET_REQ.emit(packetId);
+            Events.PACKET_REQ.emit(packetId);
           }
         });
         td.appendChild(a);

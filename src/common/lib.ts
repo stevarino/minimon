@@ -1,4 +1,5 @@
-export const NULL = '␀'
+import { Symbols } from "./symbols";
+import { NULL } from "./types";
 
 /** An object field's key, represented by parts. */
 class Key {
@@ -372,7 +373,7 @@ export function htmlElement(tagName: string, attrs?: ElementAttributes, ...child
 
 const buttonState = new WeakMap<HTMLElement, any>();
 
-export function createButton<T = object>(icon: string, title: string, onClick: (e: MouseEvent, state: T) => any, state?: T) {
+export function createButton<T = object>(icon: Symbols, title: string, onClick: (e: MouseEvent, state: T) => any, state?: T) {
   const el = htmlElement('button', { 
     onClick: (e) => {
       const state = buttonState.get(e.target as HTMLElement);

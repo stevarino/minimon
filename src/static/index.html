@@ -1,0 +1,120 @@
+<html>
+<head>
+  <title>Loading...</title>
+  <link rel="stylesheet" href="style.css?1689719069" />
+</head>
+<body>
+<div id="viewport">
+<div id="header">
+  <h1>&nbsp;</h1>
+  <div>
+    <span id="pps" title="Packets per second">0.0 Pps</span>
+    <span id="bps" title="Approximate bytes per second">0.0 Bps</span>
+  </div>
+</div>
+
+<div id="chartContianer">
+  <canvas id="chart" style="width: 100%"></canvas>
+</div>
+</div>
+<div id="sidebar" class="collapsed" data-chosen="">
+  <ul class="buttons">
+    <li class="material-symbols-outlined" title="Filters &amp; Groups" data-panel="filterPanel">&#xe4fc;<!-- query_stats --></li>
+    <li class="material-symbols-outlined" title="View Aggregate Data" data-callback="loadAggTable" data-panel="aggPanel">&#xf1be;<!-- table_view --></li>
+    <li class="material-symbols-outlined" title="View Packets" data-callback="loadPacketTable" data-panel="packetPanel">&#xe86f;<!-- code --></li>
+    <!-- <li class="material-symbols-outlined" title="Settings">&#xe429;</li> --><!-- tune -->
+    <li class="material-symbols-outlined" title="Favorites" data-panel="favoritesPanel">&#xe838;<!-- star --></li>
+    <li class="material-symbols-outlined" title="Download (Filtered)" data-callback="download">&#xf090;<!-- download --></li>
+  </ul>
+
+  <ul class="buttons">
+    <li class="material-symbols-outlined" title="About" data-panel="infoPanel">&#xe88e;<!-- info --></li>
+  </ul>
+
+  <span class="tab_buttons buttons">
+    <button class="material-symbols-outlined close_panel" title="Hide Panel" data-callback='hideSidebar'>&#xe5cd;<!-- close --></button>
+  </span>
+
+  <div id="filterPanel">
+    <h1>Filters &amp; Groups</h1>
+    <form id="filter_form">
+      <div id="field_wrapper">
+        <div id="field_placeholder"></div>
+      </div>
+
+      <div id="filterOptions">
+        <select id="filter"></select>
+        <input type="text" id="value" placeholder="Value" />
+        <button name="btn" value="Filter" title="Filter" class="material-symbols-outlined">
+          &#xef4f; <!-- filter_alt -->
+        </button>
+        <span>OR</span>
+        <button name="btn" value="Group By" title="Group By"class="material-symbols-outlined">
+          &#xe886; <!-- group_work -->
+        </button>
+      </div>
+    </form>
+    <h1>Active Filters &amp; Groups</h1>
+    <ul id="active_filters"></ul>
+  </div>
+
+  <div id="aggPanel" class="datatable">
+    <button title="Reload Table" class="material-symbols-outlined" data-callback="loadAggTable">&#xe5d5; <!-- refresh --></button>
+    <h1>Aggregate Data</h1>
+    <table></table>
+  </div>
+
+  <div id="packetPanel" class="datatable">
+    <button title="Reload Table" class="material-symbols-outlined" data-callback="loadPacketTable">&#xe5d5; <!-- refresh --></button>
+    <h1>Packets</h1>
+    <select id="table_cnt">
+      <option value="10">Limit to 10 Rows</option>
+      <option value="100">Limit to 100 Rows</option>
+      <option value="0">All Data</option>
+    </select>
+    <table></table>
+  </div>
+
+  <!-- <div id="settingsPanel">
+    <h1>Settings</h1>
+  </div> -->
+
+  <div id="favoritesPanel">
+    <h1>Favorites</h1>
+    <div id="favorites"></div>
+  </div>
+
+  <div id="infoPanel">
+    <div id="customInfo"></div>
+    <h1>About Squiggly Lines</h1>
+    <p><a href="https://github.com/stevarino/squiggly-lines">Squiggly Lines</a>: A lightweight monitoring server for quick debugging.</p>
+    <h1 id="credits">Credits</h1>
+    <ul>
+      <li><a href='https://github.com/chartjs'>Chart.js</a></li>
+      <li><a href='https://github.com/alphagov/accessible-autocomplete'>alphagov/accessible-autocomplete</a></li>
+      <li><a href='https://fonts.google.com/icons?icon.style=Outlined'>Google Material Symbols</a></li>
+    </ul>
+  </div>
+</div>
+
+<div id="tooltip">
+  <div id='tooltip_content'></div>
+</div>
+
+<dialog id="modal">
+  <div>
+    <h1>Details</h1>
+    <span class="tab_buttons buttons">
+      <button class="material-symbols-outlined" title="Copy" data-callback="dialogCopy">&#xe14d; <!-- content_copy --></button>
+      <button class="material-symbols-outlined" title="Close Popup" data-callback="dialogHide">&#xe5cd; <!-- close --></button>
+    </span>
+    <pre></pre>
+    <div id="copyText" style="display: none"></div>
+  </div>
+</dialog>
+
+<div id="filterDropdown"></div>
+
+<script src="accessible-autocomplete/accessible-autocomplete.min.js"></script>
+<script src="page.bundle.js"></script>
+</body></html>

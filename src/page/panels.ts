@@ -1,12 +1,10 @@
-import { htmlElement, inflateObject, querySelector, yieldJoin, yieldMap } from '../common/lib';
-import { PacketField, Payload } from '../common/types';
-import * as events from '../common/events';
+import { htmlElement, querySelector, Events } from '../common';
 
 interface ButtonCallback {
   [key: string]: (target: HTMLElement) => void;
 }
 
-events.PACKETS_RES.addListener(payloads => {
+Events.PACKETS_RES.addListener(payloads => {
   const blob = new Blob([payloads], { type: 'application/json' });
   const href = window.URL.createObjectURL(blob);
   const el = htmlElement('a', { href, download: 'data.json' }) as HTMLAnchorElement;
@@ -89,6 +87,6 @@ function showSidebar() {
 export const buttonCallbacks: ButtonCallback = {  
   hideSidebar,
   download: () => {
-    events.PACKETS_REQ.emit(null);
+    Events.PACKETS_REQ.emit(null);
   }
 };

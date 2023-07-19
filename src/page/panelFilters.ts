@@ -1,11 +1,10 @@
 import { querySelector, htmlText, htmlElement, createButton } from '../common/lib';
 import { changeState } from './stateManager';
-import { State } from '../common/state';
 import { FilterType } from '../worker/filterTypes';
-import * as events from '../common/events';
+import { State, Events, Symbols } from '../common';
 
 let searchCallback: ((results: string[]) => void)|undefined;
-events.FIELDS_RES.addListener((results) => {
+Events.FIELDS_RES.addListener((results) => {
   if (searchCallback === undefined) {
     console.error('searchCallback not initialized');
     return;
@@ -22,7 +21,7 @@ function fieldAutocomplete() {
     element: querySelector('#field_placeholder'),
     source: (query: string, callback: (results: string[]) => void) => {
       searchCallback = callback;
-      events.FIELDS_REQ.emit(query);
+      Events.FIELDS_REQ.emit(query);
     },
     // autoselect: true,
     displayMenu: 'overlay',
@@ -66,7 +65,7 @@ function createFilterListItem(ul: HTMLUListElement, field: string) {
   return li;
 }
 
-events.STATE.addListener((state) => {
+Events.STATE.addListener((state) => {
   const ul = querySelector<HTMLUListElement>('#active_filters') as HTMLUListElement;
   Array.from(ul.childNodes).forEach(n => ul.removeChild(n));
   state.forEach(s => {
@@ -87,7 +86,7 @@ function addGroupItem(ul: HTMLUListElement, param: string) {
     htmlText(' '),
   );
 
-  li.append(createButton<{param: string}>('close', 'Remove Grouping', 
+  li.append(createButton<{param: string}>(Symbols.CLOSE,'Remove Grouping', 
     (_, state) => {
       changeState([], [new State(state.param, '*', '')]);
     }, { param }));
@@ -107,7 +106,7 @@ function addFilterItem(ul: HTMLUListElement, param: string, op: string, value: s
     }),
     htmlText(' '),
     createButton<{filter: [string, string, string]}>(
-      'close', 'Remove Filter', (e, s) => {
+      Symbols.CLOSE, 'Remove Filter', (e, s) => {
         changeState([], [new State(...s.filter)]);
       }, {filter: [param, op, value]}),
   );

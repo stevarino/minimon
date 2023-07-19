@@ -2,7 +2,6 @@ import test from 'ava';
 import { FilterSet } from '../worker/filters';
 import { FilterType } from '../worker/filterTypes';
 import { PacketStore } from '../worker/packetStore'
-import { State } from '../common/state';
 
 function getFilterSet() {
   return new FilterSet(new PacketStore());

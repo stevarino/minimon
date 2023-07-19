@@ -1,7 +1,5 @@
-import { htmlElement, htmlText } from '../common/lib';
-import { State } from '../common/state';
+import { htmlElement, htmlText, Symbols, State, Events } from '../common';
 import { changeState } from './stateManager';
-import * as events from '../common/events';
 
 /** Reference for all dropdowns currently rendered */
 const EL_TO_DROPDOWNS = new WeakMap<Element, State[][]>();
@@ -14,7 +12,7 @@ const DROPDOWNS: HTMLElement[] = [];
 
 let STATES = new Set<string>();
 
-events.STATE.addListener(states => {
+Events.STATE.addListener(states => {
   STATES.clear();
   for (const s of states) {
     STATES.add(JSON.stringify(s));
@@ -29,7 +27,7 @@ export function filterWidget(node: HTMLElement|Text|string, stateSet: State[][])
     'div', { classList: ['filter_dropdown'], onClick: showFiltersList },
     htmlElement('div', {classList: ['filter_item']}, node),
     htmlElement('span', {
-      innerText: 'keyboard_arrow_down',
+      innerText: Symbols.KEYBOARD_ARROW_DOWN,
       classList: ['material-symbols-outlined', 'filter_arrow']
     })
   );

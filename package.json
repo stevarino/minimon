@@ -30,6 +30,7 @@
   "scripts": {
     "test": "tsc && ava",
     "demo": "tsc && node dist/scripts/demo.js",
+    "font": "src/scripts/font-extract/env/bin/python3 src/scripts/font-extract/font-extract.py",
     "copy": "node dist/scripts/copyStatic.js",
     "build": "tsc && webpack --mode production && node dist/scripts/copyStatic.js",
     "prepublish": "npm run build",

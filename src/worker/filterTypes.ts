@@ -1,4 +1,4 @@
-import { NULL } from "../common/lib";
+import { NULL } from "../common/types";
 
 /** Function signature for tests used internally in filters. */
 type testSig = (val: string|undefined, testVal: string|RegExp) => boolean;

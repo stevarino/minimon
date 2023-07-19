@@ -1,8 +1,5 @@
 import { createChart, Point, Chart } from '../common/chartJS';
-
-import { ROOT, Grouping, State } from '../common/types';
-import { htmlElement, querySelector } from '../common/lib';
-import * as events from '../common/events';
+import { ROOT, Grouping, State, htmlElement, querySelector, Events } from '../common';
 import { filterWidget } from './filterWidget';
 
 let CLICK_LOCK = false;
@@ -19,7 +16,7 @@ window.CHART = createChart(querySelector<HTMLCanvasElement>('#chart'), {
   'options.plugins.tooltip': { enabled: false, external: tooltip },
 });
 
-events.CHART_DATA.addListener(data => {
+Events.CHART_DATA.addListener(data => {
   if (CHART.options?.scales?.x !== undefined) {
     CHART.options.scales.x.min = data.startTime;
     CHART.options.scales.x.max = data.endTime;

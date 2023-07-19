@@ -3,9 +3,7 @@
  * wildcards, allowing for many-to-one mappings.
  */
 
-import * as setLib from '../common/sets';
-import { BiMap } from '../common/types';
-import { pathNumbersToStar, pathSplit } from '../common/lib';
+import { Sets, BiMap, pathNumbersToStar, pathSplit } from '../common';
 import { BSTRoot } from './bst';
 
 export type TrieOptions = {collapseArrays: boolean, searchPrefixes: string[]};
@@ -77,7 +75,7 @@ export class Trie<T> {
 
   /** Remove ids from this trie */
   remove(other: Trie<T>) {
-    setLib.differenceUpdate(this.values, other.values ?? []);
+    Sets.differenceUpdate(this.values, other.values ?? []);
     if (this.isSafeToRemove()) {
       this.parent?.removeChild(this, [...this.fields]);
     }
@@ -102,8 +100,8 @@ export class Trie<T> {
 
   /** Recursively merge another Trie tree */
   merge(other: Trie<T>) {
-    setLib.unionUpdate(this.fields, other.fields);
-    setLib.unionUpdate(this.values, other.values);
+    Sets.unionUpdate(this.fields, other.fields);
+    Sets.unionUpdate(this.values, other.values);
     other.children.forEach((child, path) => {
       if (this.children.has(path)) {
         this.children.get(path)?.merge(child);

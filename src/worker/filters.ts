@@ -11,13 +11,12 @@
  *           - field
  */
 
-import { globToRegex, isEmptyObject, regexEscape } from '../common/lib';
+import {
+  globToRegex, isEmptyObject, regexEscape, Packet, ROOT, NULL, Grouping,
+  StateTriple, Sets } from '../common';
 import { FilterType, REType, MATCHES, NOT_MATCHES } from './filterTypes';
 import { Trie } from './trie';
-import { DefaultMap, Packet, ROOT, NULL, Grouping } from '../common/types';
 import { PacketStore } from './packetStore';
-import { State, StateTriple } from '../common/state';
-import { difference } from '../common/sets';
 
 
 /** Union of a filter-type and a test value provided by the user */
@@ -341,11 +340,11 @@ export class FilterSet {
     const incoming = new Set(states.map(s => JSON.stringify(s)));
     const current = new Set(this.toStates().map(s => JSON.stringify(s)));
     // add filters not currently found
-    difference(incoming, current).forEach((s) => {
+    Sets.difference(incoming, current).forEach((s) => {
       const state: StateTriple = JSON.parse(s);
       this.addFilter(...state)
     });
-    difference(current, incoming).forEach(s => {
+    Sets.difference(current, incoming).forEach(s => {
       const state: StateTriple = JSON.parse(s);
       this.removeFilter(...state)
     })

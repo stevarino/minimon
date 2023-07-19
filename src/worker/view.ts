@@ -1,11 +1,8 @@
-import { Packet, Dataset, Table, PacketField } from '../common/types';
+import { Packet, Dataset, Table, PacketField, StateTriple, Events, inflateObject } from '../common';
 import { FilterSet } from './filters';
 import { FilterType } from './filterTypes';
 import { PacketStore } from './packetStore';
 import { FrontendOptions, buildFrontendOptions } from '../options';
-import { StateTriple } from '../common/state';
-import * as events from '../common/events';
-import { inflateObject, yieldJoin } from '../common/lib';
 
 /** Set of active filters and groups. */
 export class View {
@@ -148,7 +145,7 @@ export class View {
         pts.push(...ds.data);
       }
     }
-    events.CHART_DATA.emit({
+    Events.CHART_DATA.emit({
       startTime: this._currentTime - this.options.duration - this.options._msPerBucket,
       endTime: this._currentTime - this.options._msPerBucket,
       isPartial,

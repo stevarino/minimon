@@ -24,7 +24,6 @@ export class Server {
     this.options = buildOptions(options ?? {});
 
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      console.info(req.url);
       switch (req.url) {
       case '/packets':
         res.writeHead(200, {
@@ -38,6 +37,7 @@ export class Server {
       default:
         fileServer(req, res, finalhandler(req, res));
       }
+      console.info(res.statusCode, ' ', req.url);
     });
     server.listen(this.options.server.port);
     console.info(`Web server running on port ${this.options.server.port}`);

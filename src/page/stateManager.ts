@@ -1,8 +1,5 @@
-import { regexEscape } from '../common/lib';
-import { difference, intersection } from '../common/sets';
+import { Events, Sets, State, StateTriple, regexEscape } from '../common';
 import { FilterType } from '../worker/filterTypes';
-import { State, StateTriple } from '../common/state';
-import * as events from '../common/events'
 
 const FILTER_TYPE_RE = FilterType.types.map(f => regexEscape(f.label)).join('|');
 const FILTER_RE = new RegExp(`^(.*?)(${FILTER_TYPE_RE}|\\*)(.*)$`);
@@ -29,7 +26,7 @@ export class StateManager {
 
   constructor(historyObj?: History, initialState?: string) {
     this.historyObj = historyObj ?? history;
-    events.OPTIONS.addListener(() => {
+    Events.OPTIONS.addListener(() => {
       console.info('Initializing state from URL');
       this.updateFromHash(initialState ?? window.location.hash);
     });
@@ -80,7 +77,7 @@ export class StateManager {
     const curSet = new Set(curMap.keys());
 
     const addedStates: State[] = [];
-    Array.from(difference(addSet, curSet)).forEach(k => {
+    Array.from(Sets.difference(addSet, curSet)).forEach(k => {
       const s = addMap.get(k) as State;
       if (s.op === '!*') {
         toRemove?.push(new State(s.param, '*', ''));
@@ -91,7 +88,7 @@ export class StateManager {
 
     const filteredStates: State[] = [];
     const remSet = new Set(toRemove.map(s => JSON.stringify(s)));
-    const removed = intersection(curSet, remSet);
+    const removed = Sets.intersection(curSet, remSet);
     curMap.forEach((s, key) => {
       if (!removed.has(key)) {
         filteredStates.push(s);
@@ -114,7 +111,7 @@ export class StateManager {
 
   /** Send new state to clients */
   updateListeners() {
-    events.STATE.emit(this.state.map(s => s.toJSON() as StateTriple));
+    Events.STATE.emit(this.state.map(s => s.toJSON() as StateTriple));
   }
 }
 

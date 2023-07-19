@@ -1,9 +1,7 @@
-import { Packet, PacketField } from '../common/types';
-import * as events from '../common/events'
+import { Packet, PacketField, Events, formatBytes } from '../common';
 
 import { FrontendOptions } from '../options';
 import { DemoEventSource, demoEventSource, demoOptions } from '../page/frontendDemo';
-import { formatBytes } from '../common/lib';
 import { View } from './view';
 
 /** time (in ms) to sample packets */
@@ -15,7 +13,7 @@ const sample: {ms: number, size: number}[] = [];
 const inbox: { [key: string]: Packet } = {};
 
 function setOptions(options: FrontendOptions) {
-  events.OPTIONS.emit(options);
+  Events.OPTIONS.emit(options);
 }
 
 /** Reads string until character is found, returning read string and the following index */
@@ -57,7 +55,7 @@ function calculateRate() {
   if (cnt !== 0) {
     bps = formatBytes(size / (end - start) * 1000);
   }
-  events.SAMPLES.emit({pps: `${pps} Pps`, bps: `${bps}ps`})
+  Events.SAMPLES.emit({pps: `${pps} Pps`, bps: `${bps}ps`})
   setTimeout(calculateRate, REFRESH_RATE);
 }
 

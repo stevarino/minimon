@@ -1,7 +1,7 @@
 <html>
 <head>
   <title>Loading...</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?1689718997" />
 </head>
 <body>
 <div id="viewport">
@@ -19,20 +19,20 @@
 </div>
 <div id="sidebar" class="collapsed" data-chosen="">
   <ul class="buttons">
-    <li class="material-symbols-outlined" title="Filters &amp; Groups" data-panel="filterPanel">query_stats</li>
-    <li class="material-symbols-outlined" title="View Aggregate Data" data-callback="loadAggTable" data-panel="aggPanel">table_view</li>
-    <li class="material-symbols-outlined" title="View Packets" data-callback="loadPacketTable" data-panel="packetPanel">code</li>
-    <!-- <li class="material-symbols-outlined" title="Settings">tune</li> -->
-    <li class="material-symbols-outlined" title="Favorites" data-panel="favoritesPanel">star</li>
-    <li class="material-symbols-outlined" title="Download (Filtered)" data-callback="download">download</li>
+    <li class="material-symbols-outlined" title="Filters &amp; Groups" data-panel="filterPanel">&#xe4fc;<!-- query_stats --></li>
+    <li class="material-symbols-outlined" title="View Aggregate Data" data-callback="loadAggTable" data-panel="aggPanel">&#xf1be;<!-- table_view --></li>
+    <li class="material-symbols-outlined" title="View Packets" data-callback="loadPacketTable" data-panel="packetPanel">&#xe86f;<!-- code --></li>
+    <!-- <li class="material-symbols-outlined" title="Settings">&#xe429;</li> --><!-- tune -->
+    <li class="material-symbols-outlined" title="Favorites" data-panel="favoritesPanel">&#xe838;<!-- star --></li>
+    <li class="material-symbols-outlined" title="Download (Filtered)" data-callback="download">&#xf090;<!-- download --></li>
   </ul>
 
   <ul class="buttons">
-    <li class="material-symbols-outlined" title="About" data-panel="infoPanel">info</li>
+    <li class="material-symbols-outlined" title="About" data-panel="infoPanel">&#xe88e;<!-- info --></li>
   </ul>
 
   <span class="tab_buttons buttons">
-    <button class="material-symbols-outlined close_panel" title="Hide Panel" data-callback='hideSidebar'>close</button>
+    <button class="material-symbols-outlined close_panel" title="Hide Panel" data-callback='hideSidebar'>&#xe5cd;<!-- close --></button>
   </span>
 
   <div id="filterPanel">
@@ -46,11 +46,11 @@
         <select id="filter"></select>
         <input type="text" id="value" placeholder="Value" />
         <button name="btn" value="Filter" title="Filter" class="material-symbols-outlined">
-          filter_alt
+          &#xef4f; <!-- filter_alt -->
         </button>
         <span>OR</span>
         <button name="btn" value="Group By" title="Group By"class="material-symbols-outlined">
-          group_work
+          &#xe886; <!-- group_work -->
         </button>
       </div>
     </form>
@@ -59,13 +59,13 @@
   </div>
 
   <div id="aggPanel" class="datatable">
-    <button title="Reload Table" class="material-symbols-outlined" data-callback="loadAggTable">refresh</button>
+    <button title="Reload Table" class="material-symbols-outlined" data-callback="loadAggTable">&#xe5d5; <!-- refresh --></button>
     <h1>Aggregate Data</h1>
     <table></table>
   </div>
 
   <div id="packetPanel" class="datatable">
-    <button title="Reload Table" class="material-symbols-outlined" data-callback="loadPacketTable">refresh</button>
+    <button title="Reload Table" class="material-symbols-outlined" data-callback="loadPacketTable">&#xe5d5; <!-- refresh --></button>
     <h1>Packets</h1>
     <select id="table_cnt">
       <option value="10">Limit to 10 Rows</option>
@@ -105,8 +105,8 @@
   <div>
     <h1>Details</h1>
     <span class="tab_buttons buttons">
-      <button class="material-symbols-outlined" title="Copy" data-callback="dialogCopy">content_copy</button>
-      <button class="material-symbols-outlined" title="Close Popup" data-callback="dialogHide">close</button>
+      <button class="material-symbols-outlined" title="Copy" data-callback="dialogCopy">&#xe14d; <!-- content_copy --></button>
+      <button class="material-symbols-outlined" title="Close Popup" data-callback="dialogHide">&#xe5cd; <!-- close --></button>
     </span>
     <pre></pre>
     <div id="copyText" style="display: none"></div>

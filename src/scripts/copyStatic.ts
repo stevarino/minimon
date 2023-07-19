@@ -10,7 +10,7 @@ const packages = {
 };
 
 const root =path.resolve(__dirname, '..', '..');
-const input = path.resolve(root, 'static');
+const input = path.resolve(root, 'src', 'static');
 const output = path.resolve(root, 'dist', 'static');
 fs.readdirSync(input).forEach(f => {
   console.info('Copying ', f);
