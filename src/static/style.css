@@ -333,12 +333,16 @@ dialog>div {
   height: 100%;
 }
 
-dialog pre {
+#packetText {
   overflow: auto;
 }
 
-dialog pre>div {
+#packetText>div {
   display: inline-block;
+}
+
+#copyText {
+  display: none;
 }
 
 dialog .body {

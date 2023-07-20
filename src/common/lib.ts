@@ -1,21 +1,5 @@
 import { Symbols } from "./symbols";
-import { NULL } from "./types";
-
-/** An object field's key, represented by parts. */
-class Key {
-  parts: Array<string>;
-  constructor(...parts: Array<string>) {
-    this.parts = parts;
-  }
-
-  createChild(part: string): Key {
-    return new Key(...this.parts, part);
-  }
-
-  toString(): string {
-    return this.parts.join('.');
-  }
-}
+import { NULL, Key } from "./types";
 
 /** Takes an array of json-path like strings (dot-seperated) and reverses them. */
 function generateReversesFilters(filters?: Array<string>) {
@@ -276,13 +260,6 @@ export function overwriteObject(obj: {[path: string]: unknown}, settings: {[path
   }
 }
 
-/** Calls document.querySelector, raising an exception on not found. */
-export function querySelector<T extends HTMLElement = HTMLElement>(selector: string) {
-  const el = document.querySelector<T>(selector);
-  if (el !== null) return el;
-  throw new Error(`Unable to find selector: "${selector}`);
-}
-
 /** Converts a number into binary-based byte string */
 export function formatBytes(bytes: number, decimals = 2) {
   // https://stackoverflow.com/a/18650828
@@ -345,8 +322,14 @@ type ElementAttributes = {
 
 export function htmlElement(tagName: string, attrs?: ElementAttributes, ...children: Node[]) {
   const el = document.createElement(tagName);
+  return mutaateElement(el, attrs, ...children);
+}
+
+function mutaateElement<T extends HTMLElement = HTMLElement>(
+    el: T, attrs?: ElementAttributes, ...children: Node[]) {
   for (const [attr, val] of Object.entries(attrs ?? {})) {
     switch(attr) {
+    //@ts-ignore
     case 'download': (el as HTMLAnchorElement).download = val as string; break;
     case 'innerText': el.innerText = val as string; break;
     case 'innerHTML': el.innerHTML = val as string; break;
@@ -367,8 +350,18 @@ export function htmlElement(tagName: string, attrs?: ElementAttributes, ...child
     default: el.setAttribute(attr, val as string);
     }
   }
-  children.forEach(c => el.appendChild(c));
+  for (const c of children) {
+    el.appendChild(c);
+  }
   return el;
+}
+
+/** Calls document.querySelector, raising an exception on not found. */
+export function querySelector<T extends HTMLElement = HTMLElement>(
+    selector: string, mutations?: ElementAttributes, ...children: Node[]) {
+  const el = document.querySelector<T>(selector);
+  if (el !== null) return mutaateElement<T>(el, mutations, ...children);
+  throw new Error(`Unable to find selector: "${selector}`);
 }
 
 const buttonState = new WeakMap<HTMLElement, any>();

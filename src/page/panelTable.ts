@@ -1,7 +1,7 @@
 import { 
   DefaultMap, Table, TABLE_COLUMNS, KNOWN_COLUMNS, PacketField, State,
   formatBytes, querySelector, htmlElement, htmlText, pathNumbersToStar,
-  pathSplit, Events } from '../common';
+  pathSplit, Events, inflateObject } from '../common';
 import { buttonCallbacks } from './panels';
 import { filterWidget } from './filterWidget';
 
@@ -49,7 +49,7 @@ Events.PACKET_RES.addListener(response => {
       pathNumbersToStar(pathSplit(key)).join('.'));
   }
 
-  const lines = JSON.stringify(keykey, undefined, 2);
+  const lines = JSON.stringify(inflateObject(keykey), undefined, 2);
   const nodes: Node[] = [];
   const rawJSON: string[] = [];
   for (const line of lines.split('\n')) {
@@ -74,10 +74,8 @@ Events.PACKET_RES.addListener(response => {
   }
 
   querySelector('#modal h1').innerText = `Packet ${packetId}`;
-  querySelector('#copyText').innerText = rawJSON.join('');
-  const pre = querySelector('#modal pre');
-  pre.innerHTML = '';
-  pre.append(...nodes);
+  querySelector('#copyText', { innerHTML: '' }, htmlText(rawJSON.join('')));
+  querySelector('#packetText', { innerHTML: '' }, ...nodes);
 
   querySelector<HTMLDialogElement>('#modal').showModal();
 });

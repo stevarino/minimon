@@ -3,6 +3,22 @@ export { State, StateTriple } from './state';
 export const ROOT = 'Total';
 export const NULL = '␀';
 
+/** An object field's key, represented by parts. */
+export class Key {
+  parts: Array<string>;
+  constructor(...parts: Array<string>) {
+    this.parts = parts;
+  }
+
+  createChild(part: string): Key {
+    return new Key(...this.parts, part);
+  }
+
+  toString(): string {
+    return this.parts.join('.');
+  }
+}
+
 /** A Map object with a preset default (enable with getOrCreate) */
 export class DefaultMap<K, V> extends Map<K,V> {
   callback: (arg?: any) => V;
